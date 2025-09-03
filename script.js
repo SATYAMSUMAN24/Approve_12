@@ -519,7 +519,8 @@ function validateIndividualPersonalDetails() {
 
 function validateNonIndividualPersonalDetails() {
     const companyName = document.getElementById('companyName').value.trim();
-    const companyAddress = document.getElementById('companyAddress').value.trim();
+    const companyAddress1 = document.getElementById('companyAddress1').value.trim();
+    const companyAddress2 = document.getElementById('companyAddress2').value.trim();
     const companyCity = document.getElementById('companyCity').value.trim();
     const companyState = document.getElementById('companyState').value;
     const companyPinCode = document.getElementById('companyPinCode').value.trim();
@@ -537,8 +538,8 @@ function validateNonIndividualPersonalDetails() {
         isValid = false;
     }
 
-    if (!companyAddress) {
-        showFieldError('companyAddress', 'Please enter company address');
+    if (!companyAddress1) {
+        showFieldError('companyAddress1', 'Please enter company address line 1');
         isValid = false;
     }
 
@@ -703,7 +704,7 @@ function clearFieldErrors() {
 
 // Data persistence functions
 function saveFormData() {
-    const formInputs = document.querySelectorAll('input');
+    const formInputs = document.querySelectorAll('input, select, textarea');
     formInputs.forEach(input => {
         if (input.type !== 'checkbox') {
             formData[input.id] = input.value;
@@ -830,6 +831,9 @@ function showFinalApproval() {
 
 // New popup-based document verification system
 function showDocumentVerificationPopup(documentType, documentId) {
+    // Close any existing verification modals first
+    closeAllVerificationModals();
+    
     let popupContent = '';
 
     switch(documentType) {
@@ -916,32 +920,55 @@ function showDocumentVerificationPopup(documentType, documentId) {
             popupContent = `
                 <div class="verification-popup">
                     <h3>📋 ITR Document Verification</h3>
-                    <div class="upload-section">
-                        <div class="upload-area" id="upload-area-${documentId}">
-                            <div class="upload-icon">📄</div>
-                            <p>Drag & Drop your PDF here or</p>
-                            <button type="button" class="upload-file-btn" onclick="selectFile('${documentId}')">Choose File</button>
+                    <div class="itr-method-selection">
+                        <h4>Choose verification method:</h4>
+                        <div class="checkbox-options">
+                            <label class="checkbox-option">
+                                <input type="radio" name="itrMethod-${documentId}" value="fetch" onchange="toggleITRMethod('${documentId}', 'fetch')">
+                                <span class="checkmark"></span>
+                                Fetch from ITR Portal
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="radio" name="itrMethod-${documentId}" value="upload" onchange="toggleITRMethod('${documentId}', 'upload')">
+                                <span class="checkmark"></span>
+                                Upload PDF
+                            </label>
                         </div>
-                        <div class="upload-status" id="upload-status-${documentId}"></div>
                     </div>
-                    <form class="verification-form" id="form-${documentId}">
-                        <div class="form-group">
-                            <label>User ID *</label>
-                            <input type="text" id="userId-${documentId}" required>
+                    
+                    <div class="itr-fetch-section" id="itr-fetch-${documentId}" style="display: none;">
+                        <form class="verification-form">
+                            <div class="form-group">
+                                <label>User ID *</label>
+                                <input type="text" id="userId-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password *</label>
+                                <input type="password" id="password-${documentId}" required>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="itr-upload-section" id="itr-upload-${documentId}" style="display: none;">
+                        <div class="upload-section">
+                            <div class="upload-area" id="upload-area-${documentId}">
+                                <div class="upload-icon">📄</div>
+                                <p>Drag & Drop your PDF here or</p>
+                                <button type="button" class="upload-file-btn" onclick="selectFile('${documentId}')">Choose File</button>
+                            </div>
+                            <div class="upload-status" id="upload-status-${documentId}"></div>
                         </div>
-                        <div class="form-group">
-                            <label>Password *</label>
-                            <input type="password" id="password-${documentId}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Assessment Year *</label>
-                            <input type="text" id="assessmentYear-${documentId}" required placeholder="2023-24">
-                        </div>
-                        <div class="form-group">
-                            <label>Total Income *</label>
-                            <input type="number" id="totalIncome-${documentId}" required>
-                        </div>
-                    </form>
+                        <form class="verification-form">
+                            <div class="form-group">
+                                <label>Gross Income *</label>
+                                <input type="number" id="grossIncome-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Net Income *</label>
+                                <input type="number" id="netIncome-${documentId}" required>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             `;
             break;
@@ -950,40 +977,101 @@ function showDocumentVerificationPopup(documentType, documentId) {
             popupContent = `
                 <div class="verification-popup">
                     <h3>🚗 Dealer Invoice Verification</h3>
-                    <div class="upload-section">
-                        <div class="upload-area" id="upload-area-${documentId}">
-                            <div class="upload-icon">📄</div>
-                            <p>Drag & Drop your PDF here or</p>
-                            <button type="button" class="upload-file-btn" onclick="selectFile('${documentId}')">Choose File</button>
+                    <div class="car-type-selection">
+                        <h4>Select Car Type:</h4>
+                        <div class="checkbox-options">
+                            <label class="checkbox-option">
+                                <input type="radio" name="carType-${documentId}" id="preOwned-${documentId}" value="preOwned" onchange="handleCarTypeSelection('${documentId}', 'preOwned')">
+                                <span class="checkmark"></span>
+                                Pre-owned
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="radio" name="carType-${documentId}" id="newCar-${documentId}" value="newCar" onchange="handleCarTypeSelection('${documentId}', 'newCar')">
+                                <span class="checkmark"></span>
+                                New Car
+                            </label>
                         </div>
-                        <div class="upload-status" id="upload-status-${documentId}"></div>
                     </div>
-                    <form class="verification-form" id="form-${documentId}">
-                        <div class="form-group">
-                            <label>Invoice Number *</label>
-                            <input type="text" id="invoiceNumber-${documentId}" required>
+                    
+                    <div class="notification-message" id="preOwned-notification-${documentId}" style="display: none;">
+                        <div class="info-box">
+                            <span class="info-icon">ℹ️</span>
+                            <p>For pre-owned cars, please contact your nearest branch for further assistance.</p>
                         </div>
-                        <div class="form-group">
-                            <label>Dealer Name *</label>
-                            <input type="text" id="dealerName-${documentId}" required>
+                    </div>
+                    
+                    <div class="fuel-type-section" id="fuelType-section-${documentId}" style="display: none;">
+                        <h4>Select Fuel Type:</h4>
+                        <div class="checkbox-options">
+                            <label class="checkbox-option">
+                                <input type="radio" name="fuelType-${documentId}" value="petrol-diesel" onchange="handleFuelTypeSelection('${documentId}', 'petrol-diesel')">
+                                <span class="checkmark"></span>
+                                Petrol/Diesel
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="radio" name="fuelType-${documentId}" value="ev" onchange="handleFuelTypeSelection('${documentId}', 'ev')">
+                                <span class="checkmark"></span>
+                                EV (Electric Vehicle)
+                            </label>
                         </div>
-                        <div class="form-group">
-                            <label>Vehicle Model *</label>
-                            <input type="text" id="vehicleModel-${documentId}" required>
+                    </div>
+                    
+                    <div class="document-upload-section" id="document-upload-${documentId}" style="display: none;">
+                        <div class="upload-section">
+                            <div class="upload-area" id="upload-area-${documentId}">
+                                <div class="upload-icon">📄</div>
+                                <p>Drag & Drop your PDF here or</p>
+                                <button type="button" class="upload-file-btn" onclick="selectFile('${documentId}')">Choose File</button>
+                            </div>
+                            <div class="upload-status" id="upload-status-${documentId}"></div>
                         </div>
-                        <div class="form-group">
-                            <label>Invoice Amount *</label>
-                            <input type="number" id="invoiceAmount-${documentId}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Invoice Date *</label>
-                            <input type="date" id="invoiceDate-${documentId}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Chassis Number *</label>
-                            <input type="text" id="chassisNumber-${documentId}" required>
-                        </div>
-                    </form>
+                        <form class="verification-form" id="form-${documentId}">
+                            <div class="form-group">
+                                <label>Dealer Address *</label>
+                                <input type="text" id="dealerAddress-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Invoice Date *</label>
+                                <input type="date" id="invoiceDate-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Ex-showroom Cost *</label>
+                                <input type="number" id="exShowroomCost-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Registration *</label>
+                                <input type="number" id="registration-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Insurance *</label>
+                                <input type="number" id="insurance-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Discount *</label>
+                                <input type="number" id="discount-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Exchange Amount *</label>
+                                <input type="number" id="exchangeAmount-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Accessories & Others *</label>
+                                <input type="number" id="accessories-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Other Taxes/GST & Others *</label>
+                                <input type="number" id="otherTaxes-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Installation Fee *</label>
+                                <input type="number" id="installationFee-${documentId}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Total Invoice Value *</label>
+                                <input type="number" id="totalInvoiceValue-${documentId}" required>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             `;
             break;
@@ -998,7 +1086,7 @@ function showDocumentVerificationPopup(documentType, documentId) {
             ${popupContent}
             <div class="verification-actions">
                 <button type="button" class="cancel-verification-btn" onclick="closeVerificationPopup('${documentId}')">Cancel</button>
-                <button type="button" class="verify-document-btn" onclick="verifyDocument('${documentId}', '${documentType}')">Verify Document</button>
+                <button type="button" class="verify-document-btn" onclick="verifyDocument('${documentId}', '${documentType}')">Verify</button>
             </div>
         </div>
     `;
@@ -1008,6 +1096,82 @@ function showDocumentVerificationPopup(documentType, documentId) {
 
     // Add drag and drop functionality
     setupDragAndDrop(documentId);
+}
+
+// Handler functions for dealer invoice
+function handleCarTypeSelection(documentId, carType) {
+    const preOwnedCheckbox = document.getElementById(`preOwned-${documentId}`);
+    const newCarCheckbox = document.getElementById(`newCar-${documentId}`);
+    const preOwnedNotification = document.getElementById(`preOwned-notification-${documentId}`);
+    const fuelTypeSection = document.getElementById(`fuelType-section-${documentId}`);
+    const documentUploadSection = document.getElementById(`document-upload-${documentId}`);
+    
+    // Add null checks
+    if (!preOwnedCheckbox || !newCarCheckbox || !preOwnedNotification || !fuelTypeSection || !documentUploadSection) {
+        console.error('Required elements not found for car type selection');
+        return;
+    }
+    
+    // Ensure only one checkbox is selected (radio button behavior)
+    if (carType === 'preOwned') {
+        preOwnedCheckbox.checked = true;
+        newCarCheckbox.checked = false;
+        preOwnedNotification.style.display = 'block';
+        fuelTypeSection.style.display = 'none';
+        documentUploadSection.style.display = 'none';
+        
+        // Clear fuel type selection when switching to pre-owned
+        clearFuelTypeSelection(documentId);
+    } else if (carType === 'newCar') {
+        preOwnedCheckbox.checked = false;
+        newCarCheckbox.checked = true;
+        preOwnedNotification.style.display = 'none';
+        fuelTypeSection.style.display = 'block';
+        documentUploadSection.style.display = 'none';
+        
+        // Clear fuel type selection when switching to new car
+        clearFuelTypeSelection(documentId);
+    }
+}
+
+function handleFuelTypeSelection(documentId, fuelType) {
+    const documentUploadSection = document.getElementById(`document-upload-${documentId}`);
+    
+    // Add null check
+    if (!documentUploadSection) {
+        console.error('Document upload section not found');
+        return;
+    }
+    
+    documentUploadSection.style.display = 'block';
+}
+
+function clearFuelTypeSelection(documentId) {
+    const petrolDieselRadio = document.querySelector(`input[name="fuelType-${documentId}"][value="petrol-diesel"]`);
+    const evRadio = document.querySelector(`input[name="fuelType-${documentId}"][value="ev"]`);
+    
+    if (petrolDieselRadio) petrolDieselRadio.checked = false;
+    if (evRadio) evRadio.checked = false;
+}
+
+// Handler function for ITR method selection
+function toggleITRMethod(documentId, method) {
+    const fetchSection = document.getElementById(`itr-fetch-${documentId}`);
+    const uploadSection = document.getElementById(`itr-upload-${documentId}`);
+    
+    // Add null checks
+    if (!fetchSection || !uploadSection) {
+        console.error('ITR method sections not found');
+        return;
+    }
+    
+    if (method === 'fetch') {
+        fetchSection.style.display = 'block';
+        uploadSection.style.display = 'none';
+    } else if (method === 'upload') {
+        fetchSection.style.display = 'none';
+        uploadSection.style.display = 'block';
+    }
 }
 
 function setupDragAndDrop(documentId) {
@@ -1075,31 +1239,84 @@ function handleFileSelection(file, documentId) {
 }
 
 function verifyDocument(documentId, documentType) {
+    // Special validation for dealer invoice
+    if (documentType === 'dealerInvoice') {
+        const preOwnedSelected = document.getElementById(`preOwned-${documentId}`)?.checked;
+        const newCarSelected = document.getElementById(`newCar-${documentId}`)?.checked;
+        
+        if (!preOwnedSelected && !newCarSelected) {
+            showError('Please select a car type (Pre-owned or New Car)');
+            return;
+        }
+        
+        if (preOwnedSelected) {
+            // For pre-owned cars, just show notification - no further processing needed
+            showSuccess('For pre-owned cars, please contact your nearest branch for further assistance.');
+            closeVerificationPopup(documentId);
+            return;
+        }
+        
+        if (newCarSelected) {
+            const petrolDieselSelected = document.querySelector(`input[name="fuelType-${documentId}"][value="petrol-diesel"]`)?.checked;
+            const evSelected = document.querySelector(`input[name="fuelType-${documentId}"][value="ev"]`)?.checked;
+            
+            if (!petrolDieselSelected && !evSelected) {
+                showError('Please select a fuel type');
+                return;
+            }
+        }
+    }
+    
+    // Special validation for ITR
+    if (documentType === 'itrDoc') {
+        const fetchSelected = document.querySelector(`input[name="itrMethod-${documentId}"][value="fetch"]`)?.checked;
+        const uploadSelected = document.querySelector(`input[name="itrMethod-${documentId}"][value="upload"]`)?.checked;
+        
+        if (!fetchSelected && !uploadSelected) {
+            showError('Please select a verification method');
+            return;
+        }
+        
+        if (fetchSelected) {
+            const userId = document.getElementById(`userId-${documentId}`)?.value;
+            const password = document.getElementById(`password-${documentId}`)?.value;
+            
+            if (!userId || !password) {
+                showError('Please provide User ID and Password for fetching ITR data');
+                return;
+            }
+        }
+    }
+
     const form = document.getElementById(`form-${documentId}`);
     const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
 
-    if (!file) {
+    // For ITR fetch method, file upload is not required
+    const itrFetchSelected = document.querySelector(`input[name="itrMethod-${documentId}"][value="fetch"]`)?.checked;
+    if (!file && !(documentType === 'itrDoc' && itrFetchSelected)) {
         showError('Please upload a PDF file first');
         return;
     }
 
-    // Validate form
-    const formData = new FormData(form);
-    const requiredFields = form.querySelectorAll('[required]');
-    let isValid = true;
+    // Validate form if it exists
+    if (form) {
+        const formData = new FormData(form);
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
 
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            field.style.borderColor = '#dc3545';
-            isValid = false;
-        } else {
-            field.style.borderColor = '#ddd';
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.style.borderColor = '#dc3545';
+                isValid = false;
+            } else {
+                field.style.borderColor = '#ddd';
+            }
+        });
+
+        if (!isValid) {
+            showError('Please fill all required fields');
+            return;
         }
-    });
-
-    if (!isValid) {
-        showError('Please fill all required fields');
-        return;
     }
 
     // Show loading
@@ -1204,6 +1421,17 @@ function closeVerificationPopup(documentId) {
     // Clean up temp files
     if (window.tempUploadedFiles && window.tempUploadedFiles[documentId]) {
         delete window.tempUploadedFiles[documentId];
+    }
+}
+
+function closeAllVerificationModals() {
+    // Close all verification modals
+    const existingModals = document.querySelectorAll('.verification-modal');
+    existingModals.forEach(modal => modal.remove());
+    
+    // Clean up all temp files
+    if (window.tempUploadedFiles) {
+        window.tempUploadedFiles = {};
     }
 }
 
@@ -2401,32 +2629,51 @@ let otpTimer;
 let otpTimeRemaining = 120; // 2 minutes
 
 function showOTPModal(mobileNumber) {
+    // Close any existing verification modals first
+    closeAllVerificationModals();
+    
     const modal = document.getElementById('otpVerificationModal');
     const mobileDisplay = document.getElementById('otpMobileNumber');
 
-    mobileDisplay.textContent = mobileNumber;
-    modal.style.display = 'block';
+    if (mobileDisplay) {
+        mobileDisplay.textContent = mobileNumber;
+    }
+    if (modal) {
+        modal.style.display = 'block';
+    }
 
     // Start OTP timer
     startOTPTimer();
 
-    // Focus on OTP input
+    // Focus on OTP input with better error handling
     setTimeout(() => {
-        document.getElementById('otpInput').focus();
+        const firstOtpInput = document.getElementById('otp1');
+        if (firstOtpInput) {
+            firstOtpInput.focus();
+        }
     }, 100);
 }
 
 function closeOTPModal() {
     const modal = document.getElementById('otpVerificationModal');
-    modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
 
     // Clear timer
     if (otpTimer) {
         clearInterval(otpTimer);
+        otpTimer = null;
     }
 
-    // Reset values
-    document.getElementById('otpInput').value = '';
+    // Reset values with error handling
+    const otpInputs = ['otp1', 'otp2', 'otp3', 'otp4', 'otp5', 'otp6'];
+    otpInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.value = '';
+        }
+    });
     otpTimeRemaining = 120;
 }
 
@@ -2466,10 +2713,17 @@ function resendOTP() {
 }
 
 function verifyOTP() {
-    const otpInput = document.getElementById('otpInput').value.trim();
+    // Collect values from all 6 individual digit inputs with better error handling
+    const otpInputs = ['otp1', 'otp2', 'otp3', 'otp4', 'otp5', 'otp6'];
+    const otpValues = otpInputs.map(id => {
+        const element = document.getElementById(id);
+        return element ? element.value.trim() : '';
+    });
+    
+    const otpInput = otpValues.join('');
 
     if (!otpInput || otpInput.length !== 6) {
-        showError('Please enter a valid 6-digit OTP');
+        showError('Please enter all 6 digits of the OTP');
         return;
     }
 
@@ -2485,7 +2739,7 @@ function verifyOTP() {
 
         // Find the verify button that was clicked
         const mobileNumber = document.getElementById('otpMobileNumber').textContent;
-        const mobileInputs = document.querySelectorAll('input[type="text"]');
+        const mobileInputs = document.querySelectorAll('.mobile-input-container input[type="text"]');
         let targetVerifyBtn = null;
 
         mobileInputs.forEach(input => {
@@ -2504,6 +2758,47 @@ function verifyOTP() {
         closeOTPModal();
         showSuccess('Mobile number verified successfully!');
     }, 1500);
+}
+
+// Helper functions for OTP input handling
+function moveToNext(currentInput, nextInputId) {
+    if (!currentInput) {
+        console.error('Current input element is null');
+        return;
+    }
+    
+    // Only allow numeric input
+    currentInput.value = currentInput.value.replace(/[^0-9]/g, '');
+    
+    if (currentInput.value.length === 1 && nextInputId) {
+        const nextInput = document.getElementById(nextInputId);
+        if (nextInput) {
+            nextInput.focus();
+        } else {
+            console.error(`Next input element ${nextInputId} not found`);
+        }
+    }
+}
+
+function handleBackspace(currentInput, prevInputId) {
+    if (!currentInput) {
+        console.error('Current input element is null');
+        return;
+    }
+    
+    if (!event) {
+        console.error('Event object is null');
+        return;
+    }
+    
+    if (event.key === 'Backspace' && currentInput.value.length === 0 && prevInputId) {
+        const prevInput = document.getElementById(prevInputId);
+        if (prevInput) {
+            prevInput.focus();
+        } else {
+            console.error(`Previous input element ${prevInputId} not found`);
+        }
+    }
 }
 
 // Export functions for global access
@@ -2531,3 +2826,5 @@ window.showOTPModal = showOTPModal;
 window.closeOTPModal = closeOTPModal;
 window.resendOTP = resendOTP;
 window.verifyOTP = verifyOTP;
+window.moveToNext = moveToNext;
+window.handleBackspace = handleBackspace;
