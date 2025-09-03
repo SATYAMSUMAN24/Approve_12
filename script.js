@@ -520,14 +520,12 @@ function validateIndividualPersonalDetails() {
 function validateNonIndividualPersonalDetails() {
     const companyName = document.getElementById('companyName').value.trim();
     const companyAddress1 = document.getElementById('companyAddress1').value.trim();
-    const companyAddress2 = document.getElementById('companyAddress2').value.trim();
     const companyCity = document.getElementById('companyCity').value.trim();
     const companyState = document.getElementById('companyState').value;
     const companyPinCode = document.getElementById('companyPinCode').value.trim();
     const gstNumber = document.getElementById('gstNumber').value.trim();
     const panNumberCompany = document.getElementById('panNumberCompany').value.trim();
     const cinLlpNumber = document.getElementById('cinLlpNumber').value.trim();
-    const directorsPartners = document.getElementById('directorsPartners').value.trim();
     const existingCustomerCompany = document.getElementById('existingCustomerCompany').value;
     const cifNumberCompany = document.getElementById('cifNumberCompany').value.trim();
 
@@ -573,8 +571,12 @@ function validateNonIndividualPersonalDetails() {
         isValid = false;
     }
 
-    if (!directorsPartners) {
-        showFieldError('directorsPartners', 'Please enter directors/partners details');
+    // Check if at least one director/partner is filled
+    const directorName1 = document.getElementById('directorName1').value.trim();
+    const directorDin1 = document.getElementById('directorDin1').value.trim();
+    
+    if (!directorName1 || !directorDin1) {
+        showFieldError('directorName1', 'Please enter at least one director/partner name and DIN/LLP number');
         isValid = false;
     }
 
