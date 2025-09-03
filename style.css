@@ -1490,7 +1490,7 @@ html, body {
 .preview-modal {
   display: none;
   position: fixed;
-  z-index: 2000;
+  z-index: 9997;
   left: 0;
   top: 0;
   width: 100%;
@@ -1781,13 +1781,179 @@ html, body {
 .verification-modal {
   display: none;
   position: fixed;
-  z-index: 1500;
+  z-index: 9998;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.6);
   overflow-y: auto;
+}
+
+/* Car Type and Method Selection Styles */
+.car-type-selection,
+.itr-method-selection,
+.fuel-type-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.car-type-selection h4,
+.itr-method-selection h4,
+.fuel-type-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.checkbox-options {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  padding: 10px 15px;
+  background-color: white;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.checkbox-option:hover {
+  border-color: #FF8C00;
+  background-color: #FFFAF5;
+}
+
+.checkbox-option input[type="checkbox"],
+.checkbox-option input[type="radio"] {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  margin-right: 10px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.checkbox-option input[type="radio"] + .checkmark {
+  border-radius: 50%;
+}
+
+.checkbox-option input[type="checkbox"]:checked + .checkmark,
+.checkbox-option input[type="radio"]:checked + .checkmark {
+  background-color: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.checkbox-option input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.checkbox-option input[type="radio"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.notification-message {
+  margin-top: 15px;
+}
+
+.info-box {
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  color: #0c5460;
+  padding: 15px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-icon {
+  font-size: 20px;
+}
+
+.info-box p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.document-upload-section,
+.itr-fetch-section,
+.itr-upload-section {
+  margin-top: 20px;
+}
+
+/* Directors Grid Styles */
+.directors-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.directors-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.directors-column-header {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.directors-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.directors-row input {
+  padding: 10px 12px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.directors-row input:focus {
+  outline: none;
+  border-color: #FF8C00;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
 }
 
 .verification-modal-content {
@@ -2076,7 +2242,7 @@ html, body {
 .otp-modal {
   display: none;
   position: fixed;
-  z-index: 2000;
+  z-index: 9999;
   left: 0;
   top: 0;
   width: 100%;
@@ -2137,24 +2303,41 @@ html, body {
 
 .otp-input-container {
   margin-bottom: 20px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.otp-input {
-  width: 100%;
-  padding: 15px;
-  font-size: 24px;
+.otp-digit {
+  width: 45px;
+  height: 45px;
+  font-size: 18px;
+  padding: 8px;
   text-align: center;
   border: 2px solid #ddd;
   border-radius: 8px;
-  letter-spacing: 8px;
   font-weight: bold;
   transition: border-color 0.3s ease;
+  background-color: white;
+  color: #333;
 }
 
-.otp-input:focus {
+.otp-digit:focus {
   outline: none;
   border-color: #FF8C00;
   box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+  background-color: #FFFAF5;
+}
+
+.otp-digit::-webkit-outer-spin-button,
+.otp-digit::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.otp-digit[type=number] {
+  -moz-appearance: textfield;
 }
 
 .otp-timer {
