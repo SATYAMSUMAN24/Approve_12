@@ -13,7 +13,7 @@
     <!-- Header -->
     <div class="header">
       <div class="logo-container">
-        <div class="company-logo">
+        <div class="company-logo" onclick="location.reload()">
           <img src="/01.png" alt="" class="logo-image">
 
         </div>
@@ -290,9 +290,13 @@
         </div>
 
         <div class="form-row">
-          <div class="form-group">
-            <label for="companyAddress">Company Address</label>
-            <textarea id="companyAddress" name="companyAddress" required rows="2" placeholder="Complete address"></textarea>
+          <div class="form-group half">
+            <label for="companyAddress1">Company Address Line 1</label>
+            <input type="text" id="companyAddress1" name="companyAddress1" required placeholder="Street address, building name">
+          </div>
+          <div class="form-group half">
+            <label for="companyAddress2">Company Address Line 2</label>
+            <input type="text" id="companyAddress2" name="companyAddress2" placeholder="Apartment, suite, unit, etc.">
           </div>
         </div>
 
@@ -367,8 +371,25 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="directorsPartners">List of Directors/Partners</label>
-            <textarea id="directorsPartners" name="directorsPartners" required rows="3" placeholder="Enter names of all directors/partners"></textarea>
+            <label>List of Directors/Partners</label>
+            <div class="directors-grid">
+              <div class="directors-header">
+                <div class="directors-column-header">Name</div>
+                <div class="directors-column-header">DIN/LLP No</div>
+              </div>
+              <div class="directors-row">
+                <input type="text" id="directorName1" name="directorName1" placeholder="Director/Partner Name 1">
+                <input type="text" id="directorDin1" name="directorDin1" placeholder="DIN/LLP Number 1">
+              </div>
+              <div class="directors-row">
+                <input type="text" id="directorName2" name="directorName2" placeholder="Director/Partner Name 2">
+                <input type="text" id="directorDin2" name="directorDin2" placeholder="DIN/LLP Number 2">
+              </div>
+              <div class="directors-row">
+                <input type="text" id="directorName3" name="directorName3" placeholder="Director/Partner Name 3">
+                <input type="text" id="directorDin3" name="directorDin3" placeholder="DIN/LLP Number 3">
+              </div>
+            </div>
           </div>
         </div>
 
@@ -518,12 +539,6 @@
             <p><strong>Rate of Interest:</strong> <span id="displayInterestRate">8.50</span> p.a.*</p>
             <p><strong>Processing Charges:</strong> Rs.1,180</p>
             <p><strong>Login Fee + GST:</strong> Rs.1,180</p>
-          </div>
-          <div class="financing-note">
-            Bank will finance <span class="highlight">90% of invoice amount - Accessories</span>
-          </div>
-          <div class="disclaimer">
-            *The above EMI and ROI are indicative and subject to Proforma Invoice & other documentation as per retail loan policy.
           </div>
         </div>
       </div>
@@ -740,7 +755,7 @@
 
       <div class="action-buttons">
         <button class="restart-btn" onclick="restartApplication()">Start New Application</button>
-        <button class="download-btn" onclick="downloadSummary()">Download Summary</button>
+        <button class="download-btn" onclick="downloadSummary()">Download IPA Letter</button>
       </div>
     </div>
   </div>
@@ -788,7 +803,12 @@
         <div class="otp-body">
           <p>Enter the 6-digit OTP sent to <span id="otpMobileNumber"></span></p>
           <div class="otp-input-container">
-            <input type="text" id="otpInput" maxlength="6" placeholder="Enter 6-digit OTP" class="otp-input">
+            <input type="text" id="otp1" maxlength="1" class="otp-digit" oninput="moveToNext(this, 'otp2')" onkeydown="handleBackspace(this, null)">
+            <input type="text" id="otp2" maxlength="1" class="otp-digit" oninput="moveToNext(this, 'otp3')" onkeydown="handleBackspace(this, 'otp1')">
+            <input type="text" id="otp3" maxlength="1" class="otp-digit" oninput="moveToNext(this, 'otp4')" onkeydown="handleBackspace(this, 'otp2')">
+            <input type="text" id="otp4" maxlength="1" class="otp-digit" oninput="moveToNext(this, 'otp5')" onkeydown="handleBackspace(this, 'otp3')">
+            <input type="text" id="otp5" maxlength="1" class="otp-digit" oninput="moveToNext(this, 'otp6')" onkeydown="handleBackspace(this, 'otp4')">
+            <input type="text" id="otp6" maxlength="1" class="otp-digit" oninput="moveToNext(this, null)" onkeydown="handleBackspace(this, 'otp5')">
           </div>
           <div class="otp-timer">
             <span id="otpTimer">02:00</span>
