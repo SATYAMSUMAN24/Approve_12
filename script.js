@@ -1102,6 +1102,11 @@ function showDocumentVerificationPopup(documentType, documentId) {
 
 // Handler functions for dealer invoice
 function handleCarTypeSelection(documentId, carType) {
+    if (!documentId || !carType) {
+        console.error('Invalid parameters for car type selection');
+        return;
+    }
+
     const preOwnedCheckbox = document.getElementById(`preOwned-${documentId}`);
     const newCarCheckbox = document.getElementById(`newCar-${documentId}`);
     const preOwnedNotification = document.getElementById(`preOwned-notification-${documentId}`);
@@ -1110,7 +1115,13 @@ function handleCarTypeSelection(documentId, carType) {
     
     // Add null checks
     if (!preOwnedCheckbox || !newCarCheckbox || !preOwnedNotification || !fuelTypeSection || !documentUploadSection) {
-        console.error('Required elements not found for car type selection');
+        console.error('Required elements not found for car type selection:', {
+            preOwned: !!preOwnedCheckbox,
+            newCar: !!newCarCheckbox,
+            notification: !!preOwnedNotification,
+            fuelSection: !!fuelTypeSection,
+            uploadSection: !!documentUploadSection
+        });
         return;
     }
     
@@ -1137,11 +1148,16 @@ function handleCarTypeSelection(documentId, carType) {
 }
 
 function handleFuelTypeSelection(documentId, fuelType) {
+    if (!documentId || !fuelType) {
+        console.error('Invalid parameters for fuel type selection');
+        return;
+    }
+
     const documentUploadSection = document.getElementById(`document-upload-${documentId}`);
     
     // Add null check
     if (!documentUploadSection) {
-        console.error('Document upload section not found');
+        console.error('Document upload section not found for ID:', documentId);
         return;
     }
     
@@ -1158,12 +1174,17 @@ function clearFuelTypeSelection(documentId) {
 
 // Handler function for ITR method selection
 function toggleITRMethod(documentId, method) {
+    if (!documentId || !method) {
+        console.error('Invalid parameters for ITR method toggle');
+        return;
+    }
+
     const fetchSection = document.getElementById(`itr-fetch-${documentId}`);
     const uploadSection = document.getElementById(`itr-upload-${documentId}`);
     
     // Add null checks
     if (!fetchSection || !uploadSection) {
-        console.error('ITR method sections not found');
+        console.error('ITR method sections not found for ID:', documentId);
         return;
     }
     
@@ -1177,7 +1198,17 @@ function toggleITRMethod(documentId, method) {
 }
 
 function setupDragAndDrop(documentId) {
+    if (!documentId) {
+        console.error('Invalid document ID for drag and drop setup');
+        return;
+    }
+
     const uploadArea = document.getElementById(`upload-area-${documentId}`);
+    
+    if (!uploadArea) {
+        console.error('Upload area not found for ID:', documentId);
+        return;
+    }
 
     uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
@@ -1214,6 +1245,11 @@ function selectFile(documentId) {
 }
 
 function handleFileSelection(file, documentId) {
+    if (!file || !documentId) {
+        console.error('Invalid file or document ID');
+        return;
+    }
+
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
         showError('File size should not exceed 5MB');
@@ -1227,6 +1263,11 @@ function handleFileSelection(file, documentId) {
     }
 
     const uploadStatus = document.getElementById(`upload-status-${documentId}`);
+    if (!uploadStatus) {
+        console.error('Upload status element not found for ID:', documentId);
+        return;
+    }
+
     uploadStatus.innerHTML = `
         <div class="file-uploaded">
             <span class="file-icon">📄</span>
@@ -1266,6 +1307,33 @@ function verifyDocument(documentId, documentType) {
                 showError('Please select a fuel type');
                 return;
             }
+            
+            // Check if PDF is uploaded and form is filled for new car
+            const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
+            if (!file) {
+                showError('Please upload a PDF file first');
+                return;
+            }
+            
+            const form = document.getElementById(`form-${documentId}`);
+            if (form) {
+                const requiredFields = form.querySelectorAll('[required]');
+                let isValid = true;
+
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.style.borderColor = '#dc3545';
+                        isValid = false;
+                    } else {
+                        field.style.borderColor = '#ddd';
+                    }
+                });
+
+                if (!isValid) {
+                    showError('Please fill all required fields');
+                    return;
+                }
+            }
         }
     }
     
@@ -1288,36 +1356,79 @@ function verifyDocument(documentId, documentType) {
                 return;
             }
         }
-    }
-
-    const form = document.getElementById(`form-${documentId}`);
-    const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
-
-    // For ITR fetch method, file upload is not required
-    const itrFetchSelected = document.querySelector(`input[name="itrMethod-${documentId}"][value="fetch"]`)?.checked;
-    if (!file && !(documentType === 'itrDoc' && itrFetchSelected)) {
-        showError('Please upload a PDF file first');
-        return;
-    }
-
-    // Validate form if it exists
-    if (form) {
-        const formData = new FormData(form);
-        const requiredFields = form.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                field.style.borderColor = '#dc3545';
-                isValid = false;
-            } else {
-                field.style.borderColor = '#ddd';
+        
+        if (uploadSelected) {
+            const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
+            if (!file) {
+                showError('Please upload a PDF file first');
+                return;
             }
-        });
+            
+            const grossIncome = document.getElementById(`grossIncome-${documentId}`)?.value;
+            const netIncome = document.getElementById(`netIncome-${documentId}`)?.value;
+            
+            if (!grossIncome || !netIncome) {
+                showError('Please fill gross income and net income');
+                return;
+            }
+        }
+    }
 
-        if (!isValid) {
-            showError('Please fill all required fields');
+    // Validation for bank statement
+    if (documentType === 'bankStatement') {
+        const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
+        if (!file) {
+            showError('Please upload a PDF file first');
             return;
+        }
+        
+        const form = document.getElementById(`form-${documentId}`);
+        if (form) {
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#dc3545';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '#ddd';
+                }
+            });
+
+            if (!isValid) {
+                showError('Please fill all required fields');
+                return;
+            }
+        }
+    }
+
+    // Validation for GST document
+    if (documentType === 'gstDoc') {
+        const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
+        if (!file) {
+            showError('Please upload a PDF file first');
+            return;
+        }
+        
+        const form = document.getElementById(`form-${documentId}`);
+        if (form) {
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#dc3545';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '#ddd';
+                }
+            });
+
+            if (!isValid) {
+                showError('Please fill all required fields');
+                return;
+            }
         }
     }
 
@@ -1331,17 +1442,43 @@ function verifyDocument(documentId, documentType) {
         // Generate verification ID
         const verificationId = generateVerificationId(documentType);
 
+        // Get file reference
+        const file = window.tempUploadedFiles && window.tempUploadedFiles[documentId];
+        
+        // For ITR fetch method, create a dummy file object
+        let fileData = file;
+        if (documentType === 'itrDoc') {
+            const fetchSelected = document.querySelector(`input[name="itrMethod-${documentId}"][value="fetch"]`)?.checked;
+            if (fetchSelected && !file) {
+                fileData = {
+                    name: 'ITR_Fetched_Data.pdf',
+                    size: 1024,
+                    type: 'application/pdf'
+                };
+            }
+        }
+
         // Store document data
+        let fileURL = null;
+        if (fileData && fileData instanceof File) {
+            try {
+                fileURL = URL.createObjectURL(fileData);
+            } catch (error) {
+                console.error('Error creating object URL:', error);
+                fileURL = null;
+            }
+        }
+
         uploadedDocuments[documentId] = {
-            name: file.name,
-            size: file.size,
-            type: file.type,
+            name: fileData ? fileData.name : 'Document.pdf',
+            size: fileData ? fileData.size : 1024,
+            type: fileData ? fileData.type : 'application/pdf',
             uploadDate: new Date(),
-            fileURL: URL.createObjectURL(file),
-            file: file,
+            fileURL: fileURL,
+            file: fileData,
             verified: true,
             verificationId: verificationId,
-            formData: Object.fromEntries(formData)
+            documentType: documentType
         };
 
         // Update UI
@@ -1441,7 +1578,15 @@ function processFileUpload(file, documentId, uploadType, buttonElement) {
     showLoading();
 
     // Create file URL for preview
-    const fileURL = URL.createObjectURL(file);
+    let fileURL = null;
+    try {
+        if (file instanceof File) {
+            fileURL = URL.createObjectURL(file);
+        }
+    } catch (error) {
+        console.error('Error creating object URL:', error);
+        fileURL = null;
+    }
 
     // Simulate upload process
     setTimeout(() => {
@@ -2769,6 +2914,10 @@ function moveToNext(currentInput, nextInputId) {
         return;
     }
     
+    if (!currentInput.value) {
+        return;
+    }
+    
     // Only allow numeric input
     currentInput.value = currentInput.value.replace(/[^0-9]/g, '');
     
@@ -2788,12 +2937,15 @@ function handleBackspace(currentInput, prevInputId) {
         return;
     }
     
-    if (!event) {
+    // Use event parameter from the onkeydown attribute
+    if (!window.event && !event) {
         console.error('Event object is null');
         return;
     }
     
-    if (event.key === 'Backspace' && currentInput.value.length === 0 && prevInputId) {
+    const keyEvent = window.event || event;
+    
+    if (keyEvent.key === 'Backspace' && currentInput.value.length === 0 && prevInputId) {
         const prevInput = document.getElementById(prevInputId);
         if (prevInput) {
             prevInput.focus();
