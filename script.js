@@ -2139,17 +2139,35 @@ function setupTenureSlider() {
 
 // EMI Calculation
 function calculateEMI() {
-    const principal = formData.loanAmount || 1000000;
-    const rate = (formData.interestRate || 8.5) / 100 / 12;
-    const tenure = formData.tenure || 84;
+    // Ensure we have valid numeric values
+    let principal = formData.loanAmount;
+    if (!principal || isNaN(principal) || principal <= 0) {
+        principal = 1000000; // Default to 10 lakhs
+    }
+    
+    let rate = formData.interestRate;
+    if (!rate || isNaN(rate) || rate <= 0) {
+        rate = 8.5; // Default rate
+    }
+    
+    let tenure = formData.tenure;
+    if (!tenure || isNaN(tenure) || tenure <= 0) {
+        tenure = 84; // Default tenure
+    }
 
-    const emi = (principal * rate * Math.pow(1 + rate, tenure)) / (Math.pow(1 + rate, tenure) - 1);
+    const monthlyRate = rate / 100 / 12;
+    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / (Math.pow(1 + monthlyRate, tenure) - 1);
 
     const emiDisplay = document.getElementById('dynamicEMI');
     if (emiDisplay) {
-        const roundedEMI = Math.round(emi);
-        const emiInWords = formatAmountInWords(roundedEMI);
-        emiDisplay.innerHTML = `₹${formatAmountWithCommas(roundedEMI)} p.m.<br><small>(${emiInWords} per month)</small>`;
+        // Check if EMI calculation is valid
+        if (isNaN(emi) || !isFinite(emi)) {
+            emiDisplay.innerHTML = `₹5,500 p.m.<br><small>(Five Thousand Five Hundred Rupees Only per month)</small>`;
+        } else {
+            const roundedEMI = Math.round(emi);
+            const emiInWords = formatAmountInWords(roundedEMI);
+            emiDisplay.innerHTML = `₹${formatAmountWithCommas(roundedEMI)} p.m.<br><small>(${emiInWords} per month)</small>`;
+        }
     }
 
     // Update other displays
@@ -2163,7 +2181,7 @@ function calculateEMI() {
     }
 
     if (interestRateDisplay) {
-        interestRateDisplay.textContent = formData.interestRate || '8.50';
+        interestRateDisplay.textContent = rate.toFixed(2);
     }
 }
 
@@ -3517,46 +3535,62 @@ function handleOVDBackspace(currentInput, prevInputId) {
 function formatAmountWithCommas(amount) {
     // Ensure amount is a number before formatting
     if (typeof amount !== 'number') {
-        amount = parseFloat(amount) || 0;
+        amount = parseFloat(amount);
     }
+    
+    // Check if amount is valid
+    if (isNaN(amount) || !isFinite(amount)) {
+        return '0';
+    }
+    
     // Use Indian number formatting with commas
     return amount.toLocaleString('en-IN');
 }
 
 function formatLoanAmountDisplay(inputElement) {
+    if (!inputElement) return;
+    
     // Get cursor position before formatting
-    const cursorPosition = inputElement.selectionStart;
-    const oldValue = inputElement.value;
+    const cursorPosition = inputElement.selectionStart || 0;
+    const oldValue = inputElement.value || '';
 
     // Remove all non-digits
-    let value = inputElement.value.replace(/[^0-9]/g, '');
+    let value = oldValue.replace(/[^0-9]/g, '');
     const wordsDiv = document.getElementById('loanAmountWords');
 
-    if (value) {
+    if (value && value.length > 0) {
         const numericValue = parseInt(value, 10);
-        const formattedValue = formatAmountWithCommas(numericValue);
-        inputElement.value = formattedValue;
+        
+        // Validate the numeric value
+        if (!isNaN(numericValue) && numericValue > 0) {
+            const formattedValue = formatAmountWithCommas(numericValue);
+            inputElement.value = formattedValue;
 
-        // Calculate new cursor position
-        const oldLength = oldValue.length;
-        const newLength = formattedValue.length;
-        const newCursorPosition = Math.min(cursorPosition + (newLength - oldLength), newLength);
+            // Calculate new cursor position
+            const oldLength = oldValue.length;
+            const newLength = formattedValue.length;
+            const newCursorPosition = Math.min(cursorPosition + (newLength - oldLength), newLength);
 
-        // Set cursor position after a brief delay
-        setTimeout(() => {
-            inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
-        }, 0);
+            // Set cursor position after a brief delay
+            setTimeout(() => {
+                try {
+                    inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
+                } catch (e) {
+                    // Ignore cursor positioning errors
+                }
+            }, 0);
 
-        if (wordsDiv) {
-            wordsDiv.textContent = formatAmountInWords(numericValue);
+            if (wordsDiv) {
+                wordsDiv.textContent = formatAmountInWords(numericValue);
+            }
+            formData.loanAmount = numericValue;
         }
-        formData.loanAmount = numericValue;
     } else {
         inputElement.value = '';
         if (wordsDiv) {
             wordsDiv.textContent = '';
         }
-        formData.loanAmount = 0;
+        formData.loanAmount = 1000000; // Default value
     }
 }
 
@@ -3599,10 +3633,16 @@ function formatBusinessLoanAmountDisplay(inputElement) {
 
 
 function formatAmountInWords(amount) {
+    // Validate input
+    if (isNaN(amount) || !isFinite(amount) || amount < 0) {
+        return "Zero Rupees Only";
+    }
+    
+    amount = Math.floor(amount); // Convert to integer
+    
     const units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
     const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
     const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-    const thousands = ["", "Thousand", "Lakh", "Crore"]; // Using Lakh and Crore for Indian numbering system
 
     if (amount === 0) return "Zero Rupees Only";
 
@@ -3610,24 +3650,44 @@ function formatAmountInWords(amount) {
     let crore = Math.floor(amount / 10000000);
     amount %= 10000000;
     if (crore > 0) {
-        word += (crore < 20 ? units[crore] : tens[Math.floor(crore / 10)] + " " + units[crore % 10]) + " Crore ";
+        if (crore < 10) {
+            word += units[crore] + " Crore ";
+        } else if (crore < 20) {
+            word += teens[crore - 10] + " Crore ";
+        } else {
+            word += tens[Math.floor(crore / 10)] + " " + units[crore % 10] + " Crore ";
+        }
     }
 
     let lakh = Math.floor(amount / 100000);
     amount %= 100000;
     if (lakh > 0) {
-        word += (lakh < 20 ? units[lakh] : tens[Math.floor(lakh / 10)] + " " + units[lakh % 10]) + " Lakh ";
+        if (lakh < 10) {
+            word += units[lakh] + " Lakh ";
+        } else if (lakh < 20) {
+            word += teens[lakh - 10] + " Lakh ";
+        } else {
+            word += tens[Math.floor(lakh / 10)] + " " + units[lakh % 10] + " Lakh ";
+        }
     }
 
     let thousand = Math.floor(amount / 1000);
     amount %= 1000;
     if (thousand > 0) {
-        word += (thousand < 20 ? units[thousand] : tens[Math.floor(thousand / 10)] + " " + units[thousand % 10]) + " Thousand ";
+        if (thousand < 10) {
+            word += units[thousand] + " Thousand ";
+        } else if (thousand < 20) {
+            word += teens[thousand - 10] + " Thousand ";
+        } else {
+            word += tens[Math.floor(thousand / 10)] + " " + units[thousand % 10] + " Thousand ";
+        }
     }
 
     if (amount > 0) {
-        if (amount < 20) {
+        if (amount < 10) {
             word += units[amount] + " ";
+        } else if (amount < 20) {
+            word += teens[amount - 10] + " ";
         } else {
             word += tens[Math.floor(amount / 10)] + " " + units[amount % 10] + " ";
         }
