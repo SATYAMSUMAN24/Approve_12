@@ -18,7 +18,7 @@
 
         </div>
       </div>
-      <h1>Digital Loan Processing Centre</h1>
+      <h1></h1>
     </div>
 
     <!-- Progress Stepper -->
@@ -79,7 +79,8 @@
 
         <div class="form-group">
           <label for="loanAmount">Loan Amount</label>
-          <input type="number" id="loanAmount" name="loanAmount" required>
+          <input type="text" id="loanAmount" name="loanAmount" required oninput="formatLoanAmountDisplay(this)" placeholder="Enter loan amount">
+          <div class="helper-text" id="loanAmountWords"></div>
         </div>
 
         <div class="form-group">
@@ -87,9 +88,41 @@
           <input type="text" id="panNumber" name="panNumber" required>
         </div>
 
-        <div class="checkbox-group">
-          <input type="checkbox" id="agreeOVD" name="agreeOVD" required>
-          <label for="agreeOVD">I agree to validate my OVD Details.</label>
+        <div class="ovd-section">
+          <h4>OVD Verification</h4>
+          <div class="form-group">
+            <label for="ovdType">Select OVD Type</label>
+            <select id="ovdType" name="ovdType" required onchange="updateOVDFields()">
+              <option value="">Select OVD Type</option>
+              <option value="aadhar">Aadhar Card</option>
+              <option value="passport">Passport</option>
+              <option value="voter">Voter ID</option>
+              <option value="driving">Driving License</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="ovdNumberGroup" style="display: none;">
+            <label for="ovdNumber" id="ovdNumberLabel">Enter OVD Number</label>
+            <div class="aadhar-input-container" id="aadharInputContainer" style="display: none;">
+              <input type="text" id="aadharPart1" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, 'aadharPart2')">
+              <input type="text" id="aadharPart2" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, 'aadharPart3')">
+              <input type="text" id="aadharPart3" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, null)">
+              <div class="show-aadhar-container">
+                <input type="checkbox" id="showAadhar" onchange="toggleAadharVisibility()">
+                <label for="showAadhar">Show Aadhar Number</label>
+              </div>
+            </div>
+            <input type="text" id="ovdNumber" style="display: none;" placeholder="Enter OVD Number">
+          </div>
+
+          <div class="form-group" id="ovdVerifyGroup" style="display: none;">
+            <button type="button" class="ovd-verify-btn" id="ovdVerifyBtn" onclick="verifyOVDNumber()">Verify OVD</button>
+          </div>
+
+          <div class="checkbox-group" id="ovdConsentGroup" style="display: none;">
+            <input type="checkbox" id="agreeOVD" name="agreeOVD" required disabled>
+            <label for="agreeOVD" id="ovdConsentLabel">I agree to validate my OVD Details.</label>
+          </div>
         </div>
 
         <div class="checkbox-group">
@@ -100,6 +133,11 @@
         <div class="checkbox-group">
           <input type="checkbox" id="agreeConsent" name="agreeConsent" required>
           <label for="agreeConsent">I agree to give consent to collect, use, store and share your information for contacting you through SMS, WhatsApp and Email for providing you with Products and Services.</label>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="agreeTJSBConsent" name="agreeTJSBConsent" required onclick="handleTJSBConsentClick(event)">
+          <label for="agreeTJSBConsent">I/We hereby furnish my consent to TJSB bank to share and/or fetch any of my/our information <span class="read-more-link" onclick="showTJSBConsentModal()">Read More...</span></label>
         </div>
       </form>
 
@@ -120,7 +158,8 @@
 
         <div class="form-group">
           <label for="businessLoanAmount">Loan Amount</label>
-          <input type="number" id="businessLoanAmount" name="businessLoanAmount" required>
+          <input type="text" id="businessLoanAmount" name="businessLoanAmount" required oninput="formatBusinessLoanAmountDisplay(this)">
+          <div class="helper-text" id="businessLoanAmountWords"></div>
         </div>
 
         <div class="form-group">
@@ -590,7 +629,7 @@
         </div>
 
         <div class="selection-group">
-          <label>Employment Type</label>
+          <label>Customer Category</label>
           <div class="button-grid">
             <button class="selection-btn active" data-value="individual">
               <span class="employment-icon">👤</span>Individual
@@ -605,13 +644,13 @@
         </div>
 
         <div class="selection-group">
-          <label>Employment Sub Type</label>
+          <label>Employment Type</label>
           <div class="button-grid">
-            <button class="selection-btn employment-sub-type-btn active" data-value="salaried">
-              <span class="employment-icon">💼</span>Salaried
+            <button class="selection-btn employment-sub-type-btn active" data-value="employed">
+              <span class="employment-icon">💼</span>Employed
             </button>
-            <button class="selection-btn employment-sub-type-btn" data-value="self-professional">
-              <span class="employment-icon">⚖️</span>Self Employed Professional
+            <button class="selection-btn employment-sub-type-btn" data-value="self-employed-professional">
+              <span class="employment-icon">⚖️</span>Business/Self Employed/Professional
             </button>
             <button class="selection-btn employment-sub-type-btn" data-value="self-business">
               <span class="employment-icon">🏪</span>Self Employed Business
@@ -670,10 +709,10 @@
         </div>
 
         <div class="upload-item">
-          <div class="upload-box" id="itrDoc">
+          <div class="upload-box" id="incomeProofDoc">
             <div class="upload-icon">📋</div>
-            <h3>ITR Document</h3>
-            <button class="upload-btn" onclick="handleDocumentUpload('itrDoc')">Verify</button>
+            <h3>Income Proof Document</h3>
+            <button class="upload-btn" onclick="handleDocumentUpload('incomeProofDoc')">Verify</button>
             <div class="upload-status"></div>
           </div>
         </div>
@@ -681,7 +720,7 @@
 
       <div class="navigation-buttons">
         <button class="prev-btn" onclick="prevStep()">Previous</button>
-        <button class="next-btn" onclick="nextStep()" id="proceedToApproval">Proceed to Final Approval</button>
+        <button class="next-btn" onclick="nextStep()" id="proceedToApproval">Verify Required Documents</button>
       </div>
     </div>
 
@@ -819,6 +858,87 @@
             <button class="cancel-otp-btn" onclick="closeOTPModal()">Cancel</button>
             <button class="verify-otp-btn" onclick="verifyOTP()">Verify OTP</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OVD OTP Verification Modal -->
+    <div id="ovdOTPModal" class="otp-modal" style="display: none;">
+      <div class="otp-modal-content">
+        <div class="otp-header">
+          <h3>🔐 OVD Verification</h3>
+          <span class="close-otp" onclick="closeOVDOTPModal()">&times;</span>
+        </div>
+        <div class="otp-body">
+          <p>Enter the 6-digit OTP sent for verification of:</p>
+          <p><strong id="ovdOTPDetails"></strong></p>
+          <div class="otp-input-container">
+            <input type="text" id="ovdOtp1" maxlength="1" class="otp-digit" oninput="moveToNextOVD(this, 'ovdOtp2')" onkeydown="handleOVDBackspace(this, null)">
+            <input type="text" id="ovdOtp2" maxlength="1" class="otp-digit" oninput="moveToNextOVD(this, 'ovdOtp3')" onkeydown="handleOVDBackspace(this, 'ovdOtp1')">
+            <input type="text" id="ovdOtp3" maxlength="1" class="otp-digit" oninput="moveToNextOVD(this, 'ovdOtp4')" onkeydown="handleOVDBackspace(this, 'ovdOtp2')">
+            <input type="text" id="ovdOtp4" maxlength="1" class="otp-digit" oninput="moveToNextOVD(this, 'ovdOtp5')" onkeydown="handleOVDBackspace(this, 'ovdOtp3')">
+            <input type="text" id="ovdOtp5" maxlength="1" class="otp-digit" oninput="moveToNextOVD(this, 'ovdOtp6')" onkeydown="handleOVDBackspace(this, 'ovdOtp4')">
+            <input type="text" id="ovdOtp6" maxlength="1" class="otp-digit" oninput="moveToNextOVD(this, null)" onkeydown="handleOVDBackspace(this, 'ovdOtp5')">
+          </div>
+          <div class="otp-timer">
+            <span id="ovdOtpTimer">02:00</span>
+            <button class="resend-otp-btn" id="resendOVDOtpBtn" onclick="resendOVDOTP()" disabled>Resend OTP</button>
+          </div>
+          <div class="otp-actions">
+            <button class="cancel-otp-btn" onclick="closeOVDOTPModal()">Cancel</button>
+            <button class="verify-otp-btn" onclick="verifyOVDOTP()">Verify OTP</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TJSB Consent Modal -->
+    <div id="tjsbConsentModal" class="consent-modal" style="display: none;">
+      <div class="consent-modal-content">
+        <div class="consent-header">
+          <h3>Consent for Information Sharing</h3>
+          <span class="close-consent" onclick="closeTJSBConsentModal()">&times;</span>
+        </div>
+        <div class="consent-body">
+          <div class="consent-section">
+            <h4>1. Consent for Disclosure of Information</h4>
+            <p>I/We hereby furnish my consent to TJSB SAHAKARI Bank to share and/or fetch any of my/our information (including my/our sensitive personal information, location etc.) or any other device information when TJSB SAHAKARI Bank considers such disclosure/ fetching as necessary, with/ from:</p>
+            <ul>
+              <li>a) Agents of TJSB SAHAKARI Bank in any jurisdiction;</li>
+              <li>b) Auditors, credit rating agencies/credit bureaus, statutory/regulatory authorities, governmental/administrative authorities, Central Know Your Customer (C-KYC) registry or SEBI Know Your Client registration agency, having jurisdiction over TJSB SAHAKARI Bank;</li>
+              <li>c) Service providers, professional advisors, consultants or such person with whom TJSB SAHAKARI Bank contracts or proposes to contract; (Collectively referred to as "Permitted Persons")</li>
+            </ul>
+            <p><strong>For the purpose of:</strong></p>
+            <ul>
+              <li>a) Provision of the facility, completion of on-boarding formalities and servicing; or</li>
+              <li>b) Complying with KYC /customer due diligence requirements, anti-money laundering checks; or</li>
+              <li>c) Compliance with applicable laws or any order (judicial or otherwise), statutory/regulatory/legal requirement, including disclosure to information utilities; or</li>
+              <li>d) Credit review of facilities availed; or</li>
+              <li>e) Authentication or verification; or</li>
+              <li>f) Research or analysis, credit reporting & scoring, risk management, participation in any service-related communication; or</li>
+              <li>g) Electronic clearing network and for use or processing of the said information/data; or</li>
+              <li>h) Disclosing any default in payment; or</li>
+              <li>i) Recovering the credit facilities including all interest and other charges.</li>
+            </ul>
+          </div>
+
+          <div class="consent-section">
+            <h4>2. Consent for Camera/Microphone Access</h4>
+            <p>I/We hereby authorize TJSB SAHAKARI Bank to get a one-time access to my/our device's camera and microphone for the purposes of on-boarding and KYC verification which is required to be conducted to enable TJSB SAHAKARI Bank to provide the credit facilities sought by me/us.</p>
+          </div>
+
+          <div class="consent-section">
+            <h4>3. Consent to TJSB SAHAKARI Bank's Privacy Commitment</h4>
+            <p>I/We confirm having read and understood TJSB SAHAKARI Bank's 'Privacy Commitment' available at <a href="https://www.tjsb.bank.in/Privacy" target="_blank">https://www.tjsb.bank.in/Privacy</a>. I/We acknowledge that the same shall be subject to changes by TJSB SAHAKARI Bank from time to time at its sole discretion and I/we agree to keep myself/ourselves updated with the same.</p>
+          </div>
+
+          <div class="consent-section">
+            <h4>4. Service Provider Authorization</h4>
+            <p>I authorise TJSB SAHAKARI Bank to disclose such information provided by me to its service providers to enable them to contact me for rendering assistance that may be required to submit application to TJSB SAHAKARI Bank and complete on-boarding formalities.</p>
+          </div>
+        </div>
+        <div class="consent-actions">
+          <button class="consent-agree-btn" onclick="agreeTJSBConsent()">I Agree</button>
         </div>
       </div>
     </div>
