@@ -25,7 +25,11 @@ document.addEventListener('DOMContentLoaded', function() {
     setupTenureSlider();
     setApplicationDate();
     updateEmploymentSubTypeVisibility(); // Initialize employment sub-type visibility
-    updateDocumentVisibility(); // Initialize document visibility
+    
+    // Initialize document visibility after a brief delay to ensure DOM is ready
+    setTimeout(() => {
+        updateDocumentVisibility();
+    }, 100);
 });
 
 // Setup event listeners
@@ -48,21 +52,25 @@ function setupEventListeners() {
                 if (subTypeSection) subTypeSection.style.display = 'none';
             }
 
-            // Track employment type changes
+            // Handle customer category changes
             const groupLabel = group.querySelector('label').textContent.toLowerCase();
-            if (groupLabel.includes('employment type') && !groupLabel.includes('sub')) {
+            if (groupLabel.includes('customer category')) {
                 formData.employmentType = this.dataset.value;
-                updateEmploymentSubTypeVisibility();
+                console.log('Customer category selected:', this.dataset.value);
+                
+                // Update form visibility immediately
+                updateBasicFormVisibility();
+                updatePersonalFormVisibility();
                 updateIncomeFormVisibility();
+                updateEmploymentSubTypeVisibility();
+                updateDocumentVisibility();
             }
 
-            // Track employment sub-type changes
-            if (groupLabel.includes('employment sub type')) {
+            // Track employment type changes (Employment Type section)
+            if (groupLabel.includes('employment type') && !groupLabel.includes('sub')) {
                 selectedEmploymentSubType = this.dataset.value;
                 formData.employmentSubType = this.dataset.value;
                 updateDocumentVisibility();
-                updateIncomeFormVisibility();
-                updatePersonalFormVisibility();
             }
         });
     });
@@ -183,6 +191,16 @@ function prevStep() {
 function startApplication() {
     saveSelectionData();
     currentStep = 1;
+    
+    // Add delay to ensure DOM is ready then update form visibility
+    setTimeout(() => {
+        updateBasicFormVisibility();
+        updatePersonalFormVisibility();  
+        updateIncomeFormVisibility();
+        updateEmploymentSubTypeVisibility();
+        updateDocumentVisibility();
+    }, 100);
+    
     updateStepDisplay();
     updateProgressStepper();
 }
@@ -293,7 +311,13 @@ function validateLoanSelection() {
 }
 
 function validateDocumentUpload() {
-    let requiredDocs = ['bankStatement', 'dealerInvoice', 'incomeProofDoc'];
+    const employmentType = formData.employmentType || 'individual';
+    let requiredDocs = ['bankStatement', 'dealerInvoice'];
+
+    // Income proof is only required for individual customers
+    if (employmentType === 'individual') {
+        requiredDocs.push('incomeProofDoc');
+    }
 
     // GST is required for business-related employment sub-types
     if (selectedEmploymentSubType === 'self-business' ||
@@ -539,6 +563,13 @@ function validateIndividualPersonalDetails() {
         isValid = false;
     }
 
+    // Check TJSB Personal Consent
+    const agreeTJSBPersonalConsent = document.getElementById('agreeTJSBPersonalConsent').checked;
+    if (!agreeTJSBPersonalConsent || !window.tjsbPersonalConsentVerified) {
+        showError('Please read and agree to the TJSB Bank information consent terms');
+        isValid = false;
+    }
+
     return isValid;
 }
 
@@ -612,6 +643,13 @@ function validateNonIndividualPersonalDetails() {
 
     if (existingCustomerCompany === 'yes' && !cifNumberCompany) {
         showFieldError('cifNumberCompany', 'Please enter CIF number');
+        isValid = false;
+    }
+
+    // Check TJSB Personal Consent for non-individual
+    const agreeTJSBPersonalConsentCompany = document.getElementById('agreeTJSBPersonalConsentCompany').checked;
+    if (!agreeTJSBPersonalConsentCompany || !window.tjsbPersonalConsentVerified) {
+        showError('Please read and agree to the TJSB Bank information consent terms');
         isValid = false;
     }
 
@@ -751,9 +789,17 @@ function saveSelectionData() {
         const label = group.querySelector('label').textContent.toLowerCase().replace(/\s+/g, '_');
         selections[label] = button.dataset.value;
 
-        // Track employment sub-type
-        if (label.includes('employment_sub_type')) {
+        // Track customer category (Individual/Non-Individual)
+        if (label.includes('customer_category')) {
+            formData.employmentType = button.dataset.value;
+            console.log('Saved customer category:', button.dataset.value);
+        }
+
+        // Track employment type (the sub-categories like employed, self-employed, etc.)
+        if (label.includes('employment_type')) {
             selectedEmploymentSubType = button.dataset.value;
+            formData.employmentSubType = button.dataset.value;
+            console.log('Saved employment sub type:', button.dataset.value);
         }
     });
 
@@ -789,14 +835,25 @@ function loadSavedData() {
                     buttons.forEach(btn => btn.classList.remove('active'));
                     button.classList.add('active');
 
-                    // Restore employment sub-type
-                    if (groupKey.includes('employment_sub_type')) {
+                    // Restore customer category
+                    if (groupKey.includes('customer_category')) {
+                        formData.employmentType = value;
+                        console.log('Restored customer category:', value);
+                    }
+
+                    // Restore employment type
+                    if (groupKey.includes('employment_type')) {
                         selectedEmploymentSubType = value;
+                        formData.employmentSubType = value;
+                        console.log('Restored employment type:', value);
                     }
                 }
             });
 
-            // Update employment sub-type and document visibility after restoring selections
+            // Update all form visibilities after restoring selections
+            updateBasicFormVisibility();
+            updatePersonalFormVisibility();
+            updateIncomeFormVisibility();
             updateEmploymentSubTypeVisibility();
             updateDocumentVisibility();
         }
@@ -944,63 +1001,171 @@ function showDocumentVerificationPopup(documentType, documentId) {
             break;
 
         case 'incomeProofDoc':
+            // Check if this is for non-individual (business) users
+            const employmentType = formData.employmentType || 'individual';
+            const isNonIndividual = employmentType === 'non-individual';
+            
             popupContent = `
                 <div class="verification-popup">
-                    <h3>📋 Income Proof Document Verification</h3>
+                    <h3>📋 ${isNonIndividual ? 'Business Income Proof Verification' : 'Income Proof Document Verification'}</h3>
                     <div class="income-method-selection">
-                        <h4>Choose income proof method:</h4>
-                        <div class="checkbox-options">
+                        <h4>${isNonIndividual ? 'Choose business income verification method:' : 'Choose income proof method:'}</h4>
+                        <div class="checkbox-options responsive-checkbox-grid">
+                            ${!isNonIndividual ? `
                             <label class="checkbox-option">
                                 <input type="radio" name="incomeMethod-${documentId}" value="salary-slip" onchange="toggleIncomeMethod('${documentId}', 'salary-slip')">
                                 <span class="checkmark"></span>
-                                Upload Salary Slip (3 months)
+                                <span class="option-text">Upload Salary Slip (3 months)</span>
                             </label>
+                            ` : ''}
                             <label class="checkbox-option">
                                 <input type="radio" name="incomeMethod-${documentId}" value="itr-upload" onchange="toggleIncomeMethod('${documentId}', 'itr-upload')">
                                 <span class="checkmark"></span>
-                                Upload ITR (3 years)
+                                <span class="option-text">${isNonIndividual ? 'Upload Business ITR (3 years)' : 'Upload ITR (3 years)'}</span>
                             </label>
                             <label class="checkbox-option">
                                 <input type="radio" name="incomeMethod-${documentId}" value="itr-fetch" onchange="toggleIncomeMethod('${documentId}', 'itr-fetch')">
                                 <span class="checkmark"></span>
-                                Fetch ITR from Portal
+                                <span class="option-text">${isNonIndividual ? 'Fetch Business ITR from Portal' : 'Fetch ITR from Portal'}</span>
                             </label>
+                            ${isNonIndividual ? `
+                            <label class="checkbox-option">
+                                <input type="radio" name="incomeMethod-${documentId}" value="financial-statements" onchange="toggleIncomeMethod('${documentId}', 'financial-statements')">
+                                <span class="checkmark"></span>
+                                <span class="option-text">Upload Financial Statements</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="radio" name="incomeMethod-${documentId}" value="ca-certificate" onchange="toggleIncomeMethod('${documentId}', 'ca-certificate')">
+                                <span class="checkmark"></span>
+                                <span class="option-text">CA Certificate & Balance Sheet</span>
+                            </label>
+                            ` : ''}
                         </div>
                     </div>
 
-                    <div class="income-fetch-section" id="income-fetch-${documentId}" style="display: none;">
-                        <form class="verification-form">
+                    <div class="income-fetch-section responsive-form-section" id="income-fetch-${documentId}" style="display: none;">
+                        <h4>${isNonIndividual ? 'Business ITR Portal Login' : 'ITR Portal Login'}</h4>
+                        <form class="verification-form responsive-form">
                             <div class="form-group">
-                                <label>User ID *</label>
-                                <input type="text" id="userId-${documentId}" required>
+                                <label>${isNonIndividual ? 'Business PAN/User ID *' : 'User ID *'}</label>
+                                <input type="text" id="userId-${documentId}" required placeholder="${isNonIndividual ? 'Enter Business PAN or User ID' : 'Enter User ID'}">
                             </div>
                             <div class="form-group">
                                 <label>Password *</label>
-                                <input type="password" id="password-${documentId}" required>
+                                <input type="password" id="password-${documentId}" required placeholder="Enter portal password">
                             </div>
+                            ${isNonIndividual ? `
+                            <div class="form-group">
+                                <label>Assessment Year *</label>
+                                <select id="assessmentYear-${documentId}" required>
+                                    <option value="">Select Assessment Year</option>
+                                    <option value="2023-24">2023-24</option>
+                                    <option value="2022-23">2022-23</option>
+                                    <option value="2021-22">2021-22</option>
+                                </select>
+                            </div>
+                            ` : ''}
                         </form>
                     </div>
 
-                    <div class="income-upload-section" id="income-upload-${documentId}" style="display: none;">
+                    <div class="income-upload-section responsive-form-section" id="income-upload-${documentId}" style="display: none;">
                         <div class="upload-section">
-                            <div class="upload-area" id="upload-area-${documentId}">
+                            <div class="upload-area responsive-upload-area" id="upload-area-${documentId}">
                                 <div class="upload-icon">📄</div>
-                                <p>Drag & Drop your PDF here or</p>
+                                <p class="upload-text">${isNonIndividual ? 'Upload Business Income Documents' : 'Drag & Drop your PDF here or'}</p>
                                 <button type="button" class="upload-file-btn" onclick="selectFile('${documentId}')">Choose File</button>
                             </div>
                             <div class="upload-status" id="upload-status-${documentId}"></div>
                         </div>
-                        <form class="verification-form">
-                            <div class="form-group">
-                                <label>Gross Income *</label>
-                                <input type="number" id="grossIncome-${documentId}" required>
+                        <form class="verification-form responsive-form" id="income-details-form-${documentId}">
+                            ${isNonIndividual ? `
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Annual Business Turnover (₹) *</label>
+                                    <input type="number" id="businessTurnover-${documentId}" required placeholder="Enter annual turnover">
+                                </div>
+                                <div class="form-group">
+                                    <label>Net Business Income (₹) *</label>
+                                    <input type="number" id="netBusinessIncome-${documentId}" required placeholder="Enter net business income">
+                                </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Business Type *</label>
+                                    <select id="businessType-${documentId}" required>
+                                        <option value="">Select Business Type</option>
+                                        <option value="manufacturing">Manufacturing</option>
+                                        <option value="trading">Trading</option>
+                                        <option value="services">Services</option>
+                                        <option value="professional">Professional Services</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Years in Business *</label>
+                                    <input type="number" id="yearsInBusiness-${documentId}" required placeholder="Years in business" min="0">
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Gross Annual Income (₹) *</label>
+                                    <input type="number" id="grossIncome-${documentId}" required placeholder="Enter gross annual income">
+                                </div>
+                                <div class="form-group">
+                                    <label>Net Annual Income (₹) *</label>
+                                    <input type="number" id="netIncome-${documentId}" required placeholder="Enter net annual income">
+                                </div>
+                            </div>
+                            `}
+                        </form>
+                    </div>
+
+                    ${isNonIndividual ? `
+                    <div class="financial-statements-section responsive-form-section" id="financial-statements-${documentId}" style="display: none;">
+                        <h4>Financial Statements Upload</h4>
+                        <div class="upload-section">
+                            <div class="upload-area responsive-upload-area" id="upload-area-financial-${documentId}">
+                                <div class="upload-icon">📊</div>
+                                <p class="upload-text">Upload Profit & Loss Statement, Balance Sheet</p>
+                                <button type="button" class="upload-file-btn" onclick="selectFile('financial-${documentId}')">Choose Files</button>
+                            </div>
+                        </div>
+                        <form class="verification-form responsive-form">
                             <div class="form-group">
-                                <label>Net Income *</label>
-                                <input type="number" id="netIncome-${documentId}" required>
+                                <label>Financial Year *</label>
+                                <select id="financialYear-${documentId}" required>
+                                    <option value="">Select Financial Year</option>
+                                    <option value="2023-24">2023-24</option>
+                                    <option value="2022-23">2022-23</option>
+                                    <option value="2021-22">2021-22</option>
+                                </select>
                             </div>
                         </form>
                     </div>
+
+                    <div class="ca-certificate-section responsive-form-section" id="ca-certificate-${documentId}" style="display: none;">
+                        <h4>CA Certificate & Balance Sheet</h4>
+                        <div class="upload-section">
+                            <div class="upload-area responsive-upload-area" id="upload-area-ca-${documentId}">
+                                <div class="upload-icon">📋</div>
+                                <p class="upload-text">Upload CA Certificate and Balance Sheet</p>
+                                <button type="button" class="upload-file-btn" onclick="selectFile('ca-${documentId}')">Choose Files</button>
+                            </div>
+                        </div>
+                        <form class="verification-form responsive-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>CA Registration Number *</label>
+                                    <input type="text" id="caRegNumber-${documentId}" required placeholder="Enter CA registration number">
+                                </div>
+                                <div class="form-group">
+                                    <label>Certificate Date *</label>
+                                    <input type="date" id="certificateDate-${documentId}" required>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             break;
@@ -1211,18 +1376,32 @@ function toggleIncomeMethod(documentId, method) {
 
     const fetchSection = document.getElementById(`income-fetch-${documentId}`);
     const uploadSection = document.getElementById(`income-upload-${documentId}`);
+    const financialSection = document.getElementById(`financial-statements-${documentId}`);
+    const caSection = document.getElementById(`ca-certificate-${documentId}`);
 
-    if (!fetchSection || !uploadSection) {
-        console.error('Income method sections not found for ID:', documentId);
-        return;
-    }
+    // Hide all sections first
+    if (fetchSection) fetchSection.style.display = 'none';
+    if (uploadSection) uploadSection.style.display = 'none';
+    if (financialSection) financialSection.style.display = 'none';
+    if (caSection) caSection.style.display = 'none';
 
-    if (method === 'itr-fetch') {
-        fetchSection.style.display = 'block';
-        uploadSection.style.display = 'none';
-    } else if (method === 'salary-slip' || method === 'itr-upload') {
-        fetchSection.style.display = 'none';
-        uploadSection.style.display = 'block';
+    // Show appropriate section based on method
+    switch(method) {
+        case 'itr-fetch':
+            if (fetchSection) fetchSection.style.display = 'block';
+            break;
+        case 'salary-slip':
+        case 'itr-upload':
+            if (uploadSection) uploadSection.style.display = 'block';
+            break;
+        case 'financial-statements':
+            if (financialSection) financialSection.style.display = 'block';
+            break;
+        case 'ca-certificate':
+            if (caSection) caSection.style.display = 'block';
+            break;
+        default:
+            console.warn('Unknown income method:', method);
     }
 }
 
@@ -1753,7 +1932,13 @@ function processFileUpload(file, documentId, uploadType, buttonElement) {
 }
 
 function checkAllDocumentsUploaded() {
-    let requiredDocs = ['bankStatement', 'dealerInvoice', 'incomeProofDoc'];
+    const employmentType = formData.employmentType || 'individual';
+    let requiredDocs = ['bankStatement', 'dealerInvoice'];
+
+    // Income proof is only required for individual customers
+    if (employmentType === 'individual') {
+        requiredDocs.push('incomeProofDoc');
+    }
 
     // GST is required for business-related employment sub-types
     if (selectedEmploymentSubType === 'self-business' ||
@@ -1803,9 +1988,13 @@ function updateIncomeFormVisibility() {
     const individualForm = document.getElementById('individual-income-form');
     const nonIndividualForm = document.getElementById('non-individual-income-form');
 
-    if (!individualForm || !nonIndividualForm) return;
+    if (!individualForm || !nonIndividualForm) {
+        console.warn('Income form elements not found');
+        return;
+    }
 
     const employmentType = formData.employmentType || 'individual';
+    console.log('Updating income form visibility for:', employmentType);
 
     if (employmentType === 'non-individual') {
         individualForm.style.display = 'none';
@@ -1818,7 +2007,7 @@ function updateIncomeFormVisibility() {
         // Add required attributes to non-individual form
         const nonIndividualInputs = nonIndividualForm.querySelectorAll('input, select');
         nonIndividualInputs.forEach(input => {
-            if (input.id !== 'otherAnnualIncome' && input.type !== 'readonly') {
+            if (input.id !== 'otherAnnualIncome' && input.type !== 'readonly' && !input.disabled) {
                 input.setAttribute('required', 'required');
             }
         });
@@ -1829,7 +2018,7 @@ function updateIncomeFormVisibility() {
         // Add required attributes to individual form
         const individualInputs = individualForm.querySelectorAll('input, select');
         individualInputs.forEach(input => {
-            if (input.type !== 'readonly' && input.id !== 'bonusOvertimeArrear') {
+            if (input.type !== 'readonly' && input.id !== 'bonusOvertimeArrear' && !input.disabled) {
                 input.setAttribute('required', 'required');
             }
         });
@@ -1845,9 +2034,13 @@ function updateBasicFormVisibility() {
     const individualForm = document.getElementById('individual-basic-form');
     const nonIndividualForm = document.getElementById('non-individual-basic-form');
 
-    if (!individualForm || !nonIndividualForm) return;
+    if (!individualForm || !nonIndividualForm) {
+        console.warn('Basic form elements not found');
+        return;
+    }
 
     const employmentType = formData.employmentType || 'individual';
+    console.log('Updating basic form visibility for:', employmentType);
 
     if (employmentType === 'non-individual') {
         individualForm.style.display = 'none';
@@ -1860,7 +2053,9 @@ function updateBasicFormVisibility() {
         // Add required attributes to non-individual form
         const nonIndividualInputs = nonIndividualForm.querySelectorAll('input, select');
         nonIndividualInputs.forEach(input => {
-            input.setAttribute('required', 'required');
+            if (!input.disabled) {
+                input.setAttribute('required', 'required');
+            }
         });
     } else {
         individualForm.style.display = 'block';
@@ -1869,7 +2064,9 @@ function updateBasicFormVisibility() {
         // Add required attributes to individual form
         const individualInputs = individualForm.querySelectorAll('input, select');
         individualInputs.forEach(input => {
-            input.setAttribute('required', 'required');
+            if (!input.disabled) {
+                input.setAttribute('required', 'required');
+            }
         });
 
         // Clear required attributes from non-individual form
@@ -1883,9 +2080,13 @@ function updatePersonalFormVisibility() {
     const individualForm = document.querySelector('#step-2 .form-container:not(#non-individual-personal-form)');
     const nonIndividualForm = document.getElementById('non-individual-personal-form');
 
-    if (!individualForm || !nonIndividualForm) return;
+    if (!individualForm || !nonIndividualForm) {
+        console.warn('Personal form elements not found');
+        return;
+    }
 
     const employmentType = formData.employmentType || 'individual';
+    console.log('Updating personal form visibility for:', employmentType);
 
     if (employmentType === 'non-individual') {
         individualForm.style.display = 'none';
@@ -1898,10 +2099,17 @@ function updatePersonalFormVisibility() {
         // Add required attributes to non-individual form
         const nonIndividualInputs = nonIndividualForm.querySelectorAll('input, select, textarea');
         nonIndividualInputs.forEach(input => {
-            if (input.id !== 'cifNumberCompany' && input.id !== 'bureauScoreCompany') {
+            if (input.id !== 'cifNumberCompany' && input.id !== 'bureauScoreCompany' && input.id !== 'companyAddress2' && 
+                !input.id.includes('director') || (input.id === 'directorName1' || input.id === 'directorDin1')) {
                 input.setAttribute('required', 'required');
             }
         });
+
+        // Make sure TJSB consent checkbox is required for non-individual
+        const tjsbConsentCheckbox = document.getElementById('agreeTJSBPersonalConsentCompany');
+        if (tjsbConsentCheckbox) {
+            tjsbConsentCheckbox.setAttribute('required', 'required');
+        }
     } else {
         individualForm.style.display = 'block';
         nonIndividualForm.style.display = 'none';
@@ -1969,7 +2177,10 @@ function updateEmploymentSubTypeVisibility() {
 
 // Update document visibility based on employment sub-type
 function updateDocumentVisibility() {
+    const employmentType = formData.employmentType || 'individual';
     const gstDocument = document.getElementById('gstDocument');
+    const incomeProofDocument = document.querySelector('.upload-item:has(#incomeProofDoc)') || 
+                                document.getElementById('incomeProofDoc')?.closest('.upload-item');
 
     // Show GST document for business-related employment sub-types
     if (selectedEmploymentSubType === 'self-business' ||
@@ -1978,6 +2189,25 @@ function updateDocumentVisibility() {
         if (gstDocument) gstDocument.style.display = 'block';
     } else {
         if (gstDocument) gstDocument.style.display = 'none';
+    }
+
+    // Show/hide income proof document based on employment type
+    if (employmentType === 'non-individual') {
+        if (incomeProofDocument) incomeProofDocument.style.display = 'none';
+    } else {
+        // For individual users, always show income proof document
+        if (incomeProofDocument) {
+            incomeProofDocument.style.display = 'block';
+        } else {
+            // Fallback: find by traversing DOM if querySelector doesn't work
+            const incomeProofBox = document.getElementById('incomeProofDoc');
+            if (incomeProofBox) {
+                const parentItem = incomeProofBox.closest('.upload-item');
+                if (parentItem) {
+                    parentItem.style.display = 'block';
+                }
+            }
+        }
     }
 
     // Update required documents check
@@ -2951,7 +3181,16 @@ function verifyITR() {
 
 // Updated function to show verification popup instead of direct upload
 function handleDocumentUpload(documentId) {
-    showDocumentVerificationPopup(documentId, documentId);
+    // Map document IDs to their types for proper verification
+    const documentTypeMap = {
+        'bankStatement': 'bankStatement',
+        'dealerInvoice': 'dealerInvoice', 
+        'gstDoc': 'gstDoc',
+        'incomeProofDoc': 'incomeProofDoc'
+    };
+    
+    const documentType = documentTypeMap[documentId] || documentId;
+    showDocumentVerificationPopup(documentType, documentId);
 }
 
 // OTP Verification Functions
@@ -3162,6 +3401,58 @@ function agreeTJSBConsent() {
         showSuccess('Consent agreed successfully!');
     }
     closeTJSBConsentModal();
+}
+
+// TJSB Personal Consent Modal Functions (for Personal Details step)
+function handleTJSBPersonalConsentClick(event) {
+    // Prevent the checkbox from being checked automatically
+    event.preventDefault();
+    showTJSBPersonalConsentModal();
+}
+
+function showTJSBPersonalConsentModal() {
+    const modal = document.getElementById('tjsbPersonalConsentModal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeTJSBPersonalConsentModal() {
+    const modal = document.getElementById('tjsbPersonalConsentModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function agreeTJSBPersonalConsent() {
+    const employmentType = formData.employmentType || 'individual';
+    
+    // Determine which checkbox to check based on employment type
+    const checkboxId = employmentType === 'non-individual' ? 'agreeTJSBPersonalConsentCompany' : 'agreeTJSBPersonalConsent';
+    const checkbox = document.getElementById(checkboxId);
+    
+    if (checkbox) {
+        checkbox.checked = true;
+        
+        // Create a verified status indicator
+        const checkboxGroup = checkbox.closest('.checkbox-group');
+        let verifiedIndicator = checkboxGroup.querySelector('.consent-verified');
+        
+        if (!verifiedIndicator) {
+            verifiedIndicator = document.createElement('span');
+            verifiedIndicator.className = 'consent-verified';
+            verifiedIndicator.innerHTML = ' <span style="color: #28a745; font-weight: bold;">✓ Verified</span>';
+            checkboxGroup.appendChild(verifiedIndicator);
+        }
+        
+        // Mark as verified in form data
+        window.tjsbPersonalConsentVerified = true;
+        
+        showSuccess('TJSB Bank consent agreed successfully and verified!');
+    }
+    closeTJSBPersonalConsentModal();
 }
 
 // OVD Functions
@@ -3740,3 +4031,7 @@ window.verifyOVDOTP = verifyOVDOTP;
 window.moveToNextOVD = moveToNextOVD;
 window.handleOVDBackspace = handleOVDBackspace;
 window.getOVDDisplayName = getOVDDisplayName;
+window.showTJSBPersonalConsentModal = showTJSBPersonalConsentModal;
+window.closeTJSBPersonalConsentModal = closeTJSBPersonalConsentModal;
+window.agreeTJSBPersonalConsent = agreeTJSBPersonalConsent;
+window.handleTJSBPersonalConsentClick = handleTJSBPersonalConsentClick;
