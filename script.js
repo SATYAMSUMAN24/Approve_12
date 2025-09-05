@@ -927,7 +927,7 @@ function resetApplication() {
         if (statusElement) statusElement.textContent = '';
         const button = box.querySelector('.upload-btn');
         if (button) {
-            button.textContent = 'Upload';
+            button.textContent = 'Verify';
             button.style.backgroundColor = '#ff9800';
         }
     });
@@ -973,7 +973,7 @@ function showDocumentVerificationPopup(documentType, documentId) {
                     <form class="verification-form" id="form-${documentId}">
                         <div class="form-group">
                             <label>Account Number *</label>
-                            <input type="text" id="accountNumber-${documentId}" required>
+                            <input type="password" id="accountNumber-${documentId}" required>
                         </div>
                         <div class="form-group">
                             <label>Bank Name *</label>
@@ -981,7 +981,7 @@ function showDocumentVerificationPopup(documentType, documentId) {
                         </div>
                         <div class="form-group">
                             <label>IFSC Code *</label>
-                            <input type="text" id="ifscCode-${documentId}" required>
+                            <input type="password" id="ifscCode-${documentId}" required>
                         </div>
                         <div class="form-group">
                             <label>Account Type *</label>
@@ -991,6 +991,10 @@ function showDocumentVerificationPopup(documentType, documentId) {
                                 <option value="current">Current</option>
                                 <option value="salary">Salary</option>
                             </select>
+                        </div>
+                        <div class="show-numbers-container">
+                            <input type="checkbox" id="showBankNumbers-${documentId}" onchange="toggleBankNumbersVisibility('${documentId}')">
+                            <label for="showBankNumbers-${documentId}">Show Numbers</label>
                         </div>
                     </form>
                 </div>
@@ -1012,7 +1016,7 @@ function showDocumentVerificationPopup(documentType, documentId) {
                     <form class="verification-form" id="form-${documentId}">
                         <div class="form-group">
                             <label>GST Number *</label>
-                            <input type="text" id="gstNumber-${documentId}" required placeholder="22AAAAA0000A1Z5">
+                            <input type="password" id="gstNumber-${documentId}" required placeholder="22AAAAA0000A1Z5">
                         </div>
                         <div class="form-group">
                             <label>Business Name *</label>
@@ -1031,6 +1035,10 @@ function showDocumentVerificationPopup(documentType, documentId) {
                                 <option value="private-limited">Private Limited</option>
                                 <option value="public-limited">Public Limited</option>
                             </select>
+                        </div>
+                        <div class="show-numbers-container">
+                            <input type="checkbox" id="showGstNumbers-${documentId}" onchange="toggleGstNumbersVisibility('${documentId}')">
+                            <label for="showGstNumbers-${documentId}">Show Numbers</label>
                         </div>
                     </form>
                 </div>
@@ -1314,6 +1322,7 @@ function showDocumentVerificationPopup(documentType, documentId) {
     const modal = document.createElement('div');
     modal.className = 'verification-modal';
     modal.id = `verification-modal-${documentId}`;
+    
     modal.innerHTML = `
         <div class="verification-modal-content">
             <span class="close-verification" onclick="closeVerificationPopup('${documentId}')">&times;</span>
@@ -2021,17 +2030,19 @@ function checkAllDocumentsUploaded() {
     }
 }
 
-// Setup upload handlers
+// Setup upload handlers - DISABLED to avoid conflict with onclick handlers
 function setupUploadHandlers() {
-    const uploadButtons = document.querySelectorAll('.upload-btn');
-    uploadButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const uploadBox = this.closest('.upload-box');
-            const uploadType = uploadBox.querySelector('h3').textContent;
-            const documentId = uploadBox.id;
-            handleDocumentUpload(documentId); // Changed to call handleDocumentUpload
-        });
-    });
+    // Commenting out to avoid conflict with HTML onclick handlers
+    // const uploadButtons = document.querySelectorAll('.upload-btn');
+    // uploadButtons.forEach(button => {
+    //     button.addEventListener('click', function() {
+    //         const uploadBox = this.closest('.upload-box');
+    //         const uploadType = uploadBox.querySelector('h3').textContent;
+    //         const documentId = uploadBox.id;
+    //         handleDocumentUpload(documentId); // Changed to call handleDocumentUpload
+    //     });
+    // });
+    console.log('setupUploadHandlers disabled to prevent conflicts with onclick handlers');
 }
 
 // Update income form visibility based on employment type
@@ -3617,15 +3628,25 @@ function moveToNextAadhar(currentInput, nextInputId) {
 }
 
 function toggleAadharVisibility() {
-    const showAadhar = document.getElementById('showAadhar').checked;
+    const showAadhar = document.getElementById('showAadhar');
+    if (!showAadhar) {
+        console.error('Show Aadhar checkbox not found');
+        return;
+    }
+    
+    const isChecked = showAadhar.checked;
     const aadharInputs = ['aadharPart1', 'aadharPart2', 'aadharPart3'];
 
     aadharInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
-        if (showAadhar) {
-            input.type = 'text';
+        if (input) {
+            if (isChecked) {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
+            }
         } else {
-            input.type = 'password';
+            console.error(`Aadhar input ${inputId} not found`);
         }
     });
 }
