@@ -845,55 +845,104 @@ function saveSelectionData() {
 }
 
 function loadSavedData() {
-    const savedData = localStorage.getItem('loanApplicationData');
-    if (savedData) {
-        formData = JSON.parse(savedData);
+    try {
+        const savedData = localStorage.getItem('loanApplicationData');
+        if (!savedData) return;
 
-        // Restore form values
-        Object.keys(formData).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                if (element.type !== 'checkbox') {
-                    element.value = formData[key];
-                } else {
-                    element.checked = formData[key];
-                }
-            }
-        });
-
-        // Restore selections
-        if (formData.selections) {
-            Object.keys(formData.selections).forEach(groupKey => {
-                const value = formData.selections[groupKey];
-                const button = document.querySelector(`[data-value="${value}"]`);
-                if (button) {
-                    const group = button.closest('.selection-group');
-                    const buttons = group.querySelectorAll('.selection-btn');
-                    buttons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-
-                    // Restore customer category
-                    if (groupKey.includes('customer_category')) {
-                        formData.employmentType = value;
-                        console.log('Restored customer category:', value);
-                    }
-
-                    // Restore employment type
-                    if (groupKey.includes('employment_type')) {
-                        selectedEmploymentSubType = value;
-                        formData.employmentSubType = value;
-                        console.log('Restored employment type:', value);
-                    }
-                }
-            });
-
-            // Update all form visibilities after restoring selections
-            updateBasicFormVisibility();
-            updatePersonalFormVisibility();
-            updateIncomeFormVisibility();
-            updateEmploymentSubTypeVisibility();
-            updateDocumentVisibility();
+        const parsedData = JSON.parse(savedData);
+        
+        // Validate saved data structure
+        if (typeof parsedData !== 'object' || parsedData === null) {
+            console.warn('Invalid saved data structure, resetting...');
+            localStorage.removeItem('loanApplicationData');
+            return;
         }
+
+        formData = { ...formData, ...parsedData };
+
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+            restoreFormValues();
+            restoreSelections();
+            updateAllFormVisibilities();
+        });
+    } catch (error) {
+        console.error('Error loading saved data:', error);
+        localStorage.removeItem('loanApplicationData');
+    }
+}
+
+// Separate function for restoring form values with better error handling
+function restoreFormValues() {
+    Object.keys(formData).forEach(key => {
+        if (key === 'selections') return; // Skip selections, handled separately
+        
+        const element = document.getElementById(key);
+        if (!element) return;
+
+        try {
+            if (element.type === 'checkbox') {
+                element.checked = Boolean(formData[key]);
+            } else {
+                element.value = formData[key] || '';
+            }
+        } catch (error) {
+            console.warn(`Error restoring value for ${key}:`, error);
+        }
+    });
+}
+
+// Separate function for restoring selections with improved logic
+function restoreSelections() {
+    if (!formData.selections || typeof formData.selections !== 'object') return;
+
+    Object.keys(formData.selections).forEach(groupKey => {
+        const value = formData.selections[groupKey];
+        if (!value) return;
+
+        const button = document.querySelector(`[data-value="${value}"]`);
+        if (!button) return;
+
+        const group = button.closest('.selection-group');
+        if (!group) return;
+
+        // Clear existing selections in group
+        group.querySelectorAll('.selection-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        // Update global state based on selection type
+        updateGlobalStateFromSelection(groupKey, value);
+    });
+}
+
+// Helper function to update global state from selections
+function updateGlobalStateFromSelection(groupKey, value) {
+    if (groupKey.includes('customer_category')) {
+        formData.employmentType = value;
+        console.log('Restored customer category:', value);
+    } else if (groupKey.includes('employment_type')) {
+        selectedEmploymentSubType = value;
+        formData.employmentSubType = value;
+        console.log('Restored employment type:', value);
+    }
+}
+
+// Consolidated function to update all form visibilities
+function updateAllFormVisibilities() {
+    try {
+        updateBasicFormVisibility();
+        updatePersonalFormVisibility();
+        updateIncomeFormVisibility();
+        updateEmploymentSubTypeVisibility();
+        
+        // Clear cached elements to ensure fresh DOM queries
+        if (window.cachedDocElements) {
+            window.cachedDocElements = null;
+        }
+        
+        updateDocumentVisibility();
+    } catch (error) {
+        console.error('Error updating form visibilities:', error);
     }
 }
 
@@ -952,6 +1001,14 @@ function showFinalApproval() {
 
 // New popup-based document verification system
 function showDocumentVerificationPopup(documentType, documentId) {
+    console.log('showDocumentVerificationPopup called:', documentType, documentId);
+    
+    if (!documentType || !documentId) {
+        console.error('Invalid parameters for showDocumentVerificationPopup');
+        showError('Invalid document parameters. Please try again.');
+        return;
+    }
+    
     // Close any existing verification modals first
     closeAllVerificationModals();
 
@@ -1319,26 +1376,34 @@ function showDocumentVerificationPopup(documentType, documentId) {
             break;
     }
 
-    const modal = document.createElement('div');
-    modal.className = 'verification-modal';
-    modal.id = `verification-modal-${documentId}`;
-    
-    modal.innerHTML = `
-        <div class="verification-modal-content">
-            <span class="close-verification" onclick="closeVerificationPopup('${documentId}')">&times;</span>
-            ${popupContent}
-            <div class="verification-actions">
-                <button type="button" class="cancel-verification-btn" onclick="closeVerificationPopup('${documentId}')">Cancel</button>
-                <button type="button" class="verify-document-btn" onclick="verifyDocument('${documentId}', '${documentType}')">Verify</button>
+    try {
+        const modal = document.createElement('div');
+        modal.className = 'verification-modal';
+        modal.id = `verification-modal-${documentId}`;
+        
+        modal.innerHTML = `
+            <div class="verification-modal-content">
+                <span class="close-verification" onclick="closeVerificationPopup('${documentId}')">&times;</span>
+                ${popupContent}
+                <div class="verification-actions">
+                    <button type="button" class="cancel-verification-btn" onclick="closeVerificationPopup('${documentId}')">Cancel</button>
+                    <button type="button" class="verify-document-btn" onclick="verifyDocument('${documentId}', '${documentType}')">Verify</button>
+                </div>
             </div>
-        </div>
-    `;
+        `;
 
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
 
-    // Add drag and drop functionality
-    setupDragAndDrop(documentId);
+        console.log('Modal created and displayed successfully');
+
+        // Add drag and drop functionality
+        setupDragAndDrop(documentId);
+    } catch (error) {
+        console.error('Error creating modal:', error);
+        showError('Failed to create verification modal. Please refresh and try again.');
+    }
 }
 
 // Handler functions for dealer invoice
@@ -1482,32 +1547,38 @@ function setupDragAndDrop(documentId) {
         return;
     }
 
-    const uploadArea = document.getElementById(`upload-area-${documentId}`);
+    // Add a small delay to ensure the modal is fully rendered
+    setTimeout(() => {
+        const uploadArea = document.getElementById(`upload-area-${documentId}`);
 
-    if (!uploadArea) {
-        console.error('Upload area not found for ID:', documentId);
-        return;
-    }
+        if (!uploadArea) {
+            console.error('Upload area not found for ID:', documentId);
+            console.log('Available upload areas:', document.querySelectorAll('[id^="upload-area-"]'));
+            return;
+        }
+
+        console.log('Setting up drag and drop for:', documentId);
 
     uploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('drag-over');
-    });
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
 
-    uploadArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('drag-over');
-    });
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+        });
 
-    uploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('drag-over');
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
 
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleFileSelection(files[0], documentId);
-        }
-    });
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelection(files[0], documentId);
+            }
+        });
+    }, 100); // 100ms delay to ensure modal is rendered
 }
 
 function selectFile(documentId) {
@@ -1885,13 +1956,44 @@ function closeVerificationPopup(documentId) {
 }
 
 function closeAllVerificationModals() {
-    // Close all verification modals
-    const existingModals = document.querySelectorAll('.verification-modal');
-    existingModals.forEach(modal => modal.remove());
+    try {
+        // Close all verification modals with proper cleanup
+        const existingModals = document.querySelectorAll('.verification-modal');
+        existingModals.forEach(modal => {
+            // Revoke any object URLs to prevent memory leaks
+            const fileInputs = modal.querySelectorAll('input[type="file"]');
+            fileInputs.forEach(input => {
+                if (input.files) {
+                    Array.from(input.files).forEach(file => {
+                        if (file.objectURL) {
+                            URL.revokeObjectURL(file.objectURL);
+                        }
+                    });
+                }
+            });
+            
+            modal.remove();
+        });
 
-    // Clean up all temp files
-    if (window.tempUploadedFiles) {
-        window.tempUploadedFiles = {};
+        // Clean up temp files and revoke object URLs
+        if (window.tempUploadedFiles) {
+            Object.values(window.tempUploadedFiles).forEach(file => {
+                if (file && file.objectURL) {
+                    URL.revokeObjectURL(file.objectURL);
+                }
+            });
+            window.tempUploadedFiles = {};
+        }
+
+        // Restore body scrolling
+        document.body.style.overflow = 'auto';
+    } catch (error) {
+        console.error('Error closing verification modals:', error);
+        // Ensure cleanup even if there's an error
+        if (window.tempUploadedFiles) {
+            window.tempUploadedFiles = {};
+        }
+        document.body.style.overflow = 'auto';
     }
 }
 
@@ -2190,62 +2292,88 @@ function updatePersonalFormVisibility() {
     }
 }
 
-// Update employment sub-type visibility based on employment type
+// Simplified employment sub-type visibility with better performance
 function updateEmploymentSubTypeVisibility() {
     const employmentType = formData.employmentType || 'individual';
     const employmentSubTypeButtons = document.querySelectorAll('.employment-sub-type-btn');
+    
+    // Define visibility rules clearly
+    const businessOnlyTypes = ['llp-partnership', 'private-limited'];
+    const isNonIndividual = employmentType === 'non-individual';
+    
+    let hasActiveButton = false;
+    let firstVisibleButton = null;
 
     employmentSubTypeButtons.forEach(button => {
         const buttonValue = button.dataset.value;
-
-        if (employmentType === 'non-individual') {
-            // For non-individual, only show LLP/Partnership and Private Limited
-            if (buttonValue === 'llp-partnership' || buttonValue === 'private-limited') {
-                button.style.display = 'block';
-            } else {
-                button.style.display = 'none';
-                // Remove active class if hidden button was active
-                if (button.classList.contains('active')) {
-                    button.classList.remove('active');
-                }
-            }
-        } else {
-            // For individual, show all except LLP/Partnership and Private Limited
-            if (buttonValue === 'llp-partnership' || buttonValue === 'private-limited') {
-                button.style.display = 'none';
-                // Remove active class if hidden button was active
-                if (button.classList.contains('active')) {
-                    button.classList.remove('active');
-                }
-            } else {
-                button.style.display = 'block';
-            }
+        const isBusinessType = businessOnlyTypes.includes(buttonValue);
+        const shouldShow = isNonIndividual ? isBusinessType : !isBusinessType;
+        
+        // Update visibility efficiently
+        button.style.display = shouldShow ? 'block' : 'none';
+        
+        if (shouldShow && !firstVisibleButton) {
+            firstVisibleButton = button;
+        }
+        
+        // Handle active state
+        if (!shouldShow && button.classList.contains('active')) {
+            button.classList.remove('active');
+        } else if (shouldShow && button.classList.contains('active')) {
+            hasActiveButton = true;
         }
     });
 
-    // If no employment sub-type is selected after filtering, select the first visible one
-    const activeSubType = document.querySelector('.employment-sub-type-btn.active[style*="block"], .employment-sub-type-btn.active:not([style*="none"])');
-    if (!activeSubType) {
-        const firstVisible = document.querySelector('.employment-sub-type-btn[style*="block"], .employment-sub-type-btn:not([style*="none"])');
-        if (firstVisible) {
-            firstVisible.classList.add('active');
-            selectedEmploymentSubType = firstVisible.dataset.value;
-            formData.employmentSubType = firstVisible.dataset.value;
-        }
+    // Auto-select first visible button if none are active
+    if (!hasActiveButton && firstVisibleButton) {
+        firstVisibleButton.classList.add('active');
+        selectedEmploymentSubType = firstVisibleButton.dataset.value;
+        formData.employmentSubType = firstVisibleButton.dataset.value;
+        console.log('Auto-selected employment sub-type:', selectedEmploymentSubType);
     }
 
-    updateDocumentVisibility();
+    // Update document visibility with debouncing to prevent excessive calls
+    if (window.documentVisibilityTimeout) {
+        clearTimeout(window.documentVisibilityTimeout);
+    }
+    window.documentVisibilityTimeout = setTimeout(() => {
+        updateDocumentVisibility();
+    }, 100);
 }
 
-// Update document visibility based on employment sub-type
+// Consolidated document visibility management
 function updateDocumentVisibility() {
     const employmentType = formData.employmentType || 'individual';
     const gstDocument = document.getElementById('gstDocument');
     
-    // Find income proof document more reliably
+    // Cache DOM elements to reduce repeated queries
+    if (!window.cachedDocElements) {
+        window.cachedDocElements = {
+            gstDocument: gstDocument,
+            incomeProofDocument: findIncomeProofDocument()
+        };
+    }
+    
+    const { incomeProofDocument } = window.cachedDocElements;
+
+    console.log('Employment Type:', employmentType);
+    console.log('Selected Employment Sub Type:', selectedEmploymentSubType);
+    console.log('Income Proof Document Found:', !!incomeProofDocument);
+
+    // Use CSS classes instead of direct style manipulation for better performance
+    const documentVisibilityConfig = getDocumentVisibilityConfig(employmentType, selectedEmploymentSubType);
+    
+    // Apply visibility configuration
+    applyDocumentVisibility(documentVisibilityConfig);
+    
+    // Update required documents check
+    checkAllDocumentsUploaded();
+}
+
+// Helper function to find income proof document reliably
+function findIncomeProofDocument() {
     let incomeProofDocument = document.getElementById('incomeProofDoc')?.closest('.upload-item');
     if (!incomeProofDocument) {
-        // Alternative search method
         const uploadItems = document.querySelectorAll('.upload-item');
         uploadItems.forEach(item => {
             const uploadBox = item.querySelector('#incomeProofDoc');
@@ -2254,44 +2382,44 @@ function updateDocumentVisibility() {
             }
         });
     }
+    return incomeProofDocument;
+}
 
-    console.log('Employment Type:', employmentType);
-    console.log('Selected Employment Sub Type:', selectedEmploymentSubType);
-    console.log('Income Proof Document Found:', !!incomeProofDocument);
+// Get document visibility configuration based on employment details
+function getDocumentVisibilityConfig(employmentType, employmentSubType) {
+    const config = {
+        gst: false,
+        incomeProof: true // Default to showing income proof
+    };
+    
+    // GST document logic
+    const businessEmploymentTypes = ['self-business', 'llp-partnership', 'private-limited'];
+    config.gst = businessEmploymentTypes.includes(employmentSubType);
+    
+    // Income proof document logic
+    config.incomeProof = employmentType === 'individual';
+    
+    return config;
+}
 
-    // Show GST document for business-related employment sub-types
-    if (selectedEmploymentSubType === 'self-business' ||
-        selectedEmploymentSubType === 'llp-partnership' ||
-        selectedEmploymentSubType === 'private-limited') {
-        if (gstDocument) {
-            gstDocument.style.display = 'block';
-            console.log('GST Document: SHOWN (business employment type)');
-        }
-    } else {
-        if (gstDocument) {
-            gstDocument.style.display = 'none';
-            console.log('GST Document: HIDDEN (non-business employment type)');
-        }
+// Apply document visibility with better error handling
+function applyDocumentVisibility(config) {
+    const gstDocument = window.cachedDocElements?.gstDocument || document.getElementById('gstDocument');
+    const incomeProofDocument = window.cachedDocElements?.incomeProofDocument || findIncomeProofDocument();
+    
+    // Handle GST document
+    if (gstDocument) {
+        gstDocument.style.display = config.gst ? 'block' : 'none';
+        console.log(`GST Document: ${config.gst ? 'SHOWN' : 'HIDDEN'} (${config.gst ? 'business' : 'non-business'} employment type)`);
     }
-
-    // Show/hide income proof document based on employment type
-    if (employmentType === 'non-individual') {
-        if (incomeProofDocument) {
-            incomeProofDocument.style.display = 'none';
-            console.log('Income Proof Document: HIDDEN (non-individual)');
-        }
-    } else {
-        // For individual users, ALWAYS show income proof document
-        if (incomeProofDocument) {
-            incomeProofDocument.style.display = 'block';
-            console.log('Income Proof Document: SHOWN (individual user)');
-        } else {
-            console.error('Income Proof Document not found for individual user!');
-        }
+    
+    // Handle income proof document
+    if (incomeProofDocument) {
+        incomeProofDocument.style.display = config.incomeProof ? 'block' : 'none';
+        console.log(`Income Proof Document: ${config.incomeProof ? 'SHOWN' : 'HIDDEN'} (${config.incomeProof ? 'individual' : 'non-individual'} user)`);
+    } else if (config.incomeProof) {
+        console.error('Income Proof Document not found for individual user!');
     }
-
-    // Update required documents check
-    checkAllDocumentsUploaded();
 }
 
 // Call setup on DOM load
@@ -3261,6 +3389,8 @@ function verifyITR() {
 
 // Updated function to show verification popup instead of direct upload
 function handleDocumentUpload(documentId) {
+    console.log('handleDocumentUpload called with documentId:', documentId);
+    
     // Map document IDs to their types for proper verification
     const documentTypeMap = {
         'bankStatement': 'bankStatement',
@@ -3270,7 +3400,14 @@ function handleDocumentUpload(documentId) {
     };
     
     const documentType = documentTypeMap[documentId] || documentId;
-    showDocumentVerificationPopup(documentType, documentId);
+    console.log('Opening verification popup for document type:', documentType);
+    
+    try {
+        showDocumentVerificationPopup(documentType, documentId);
+    } catch (error) {
+        console.error('Error opening verification popup:', error);
+        showError('Failed to open document verification. Please try again.');
+    }
 }
 
 // OTP Verification Functions
