@@ -1069,6 +1069,31 @@ html, body {
   gap: 20px;
   justify-content: center;
   margin: 20px 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.action-buttons button {
+  min-width: 200px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Mobile fixes for action buttons */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 15px;
+    padding: 0 15px;
+  }
+
+  .action-buttons button {
+    width: 100% !important;
+    min-width: unset;
+  }
 }
 
 /* Thank You Page Styles */
@@ -1242,12 +1267,6 @@ html, body {
   .upload-grid {
     grid-template-columns: 1fr;
     gap: 20px;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
   }
 
   .loan-amount {
