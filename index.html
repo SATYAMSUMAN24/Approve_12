@@ -104,9 +104,9 @@
           <div class="form-group" id="ovdNumberGroup" style="display: none;">
             <label for="ovdNumber" id="ovdNumberLabel">Enter OVD Number</label>
             <div class="aadhar-input-container" id="aadharInputContainer" style="display: none;">
-              <input type="text" id="aadharPart1" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, 'aadharPart2')">
-              <input type="text" id="aadharPart2" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, 'aadharPart3')">
-              <input type="text" id="aadharPart3" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, null)">
+              <input type="password" id="aadharPart1" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, 'aadharPart2')">
+              <input type="password" id="aadharPart2" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, 'aadharPart3')">
+              <input type="password" id="aadharPart3" maxlength="4" placeholder="****" oninput="moveToNextAadhar(this, null)">
               <div class="show-aadhar-container">
                 <input type="checkbox" id="showAadhar" onchange="toggleAadharVisibility()">
                 <label for="showAadhar">Show Aadhar Number</label>
@@ -333,7 +333,7 @@
         <h3>Company/Business Information</h3>
         
         <div class="company-section">
-          <h4>Company Details</h4>
+          <h4></h4>
           <div class="form-row">
             <div class="form-group">
               <label for="companyName">Company Name</label>
