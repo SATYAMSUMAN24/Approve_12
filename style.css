@@ -9,6 +9,10 @@ html, body {
   width: 100%;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #FFE5CC, #FFF0E6);
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .container {
@@ -20,6 +24,9 @@ html, body {
   box-shadow: 0 0 30px rgba(255, 140, 0, 0.15);
   border-radius: 16px;
   border: 1px solid rgba(255, 140, 0, 0.1);
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Header Styles */
@@ -321,12 +328,34 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 30px;
+  margin-top: 40px;
+  margin-bottom: 40px;
   gap: 20px;
+  padding: 20px 0;
+  position: relative;
 }
 
 .navigation-buttons.single {
   justify-content: flex-end;
+}
+
+/* Ensure navigation buttons are always visible */
+.step-content {
+  padding-bottom: 100px;
+  min-height: calc(100vh - 200px);
+}
+
+/* Fix for laptop screens */
+@media (min-width: 769px) and (max-width: 1366px) {
+  .navigation-buttons {
+    margin-top: 50px;
+    margin-bottom: 50px;
+    padding: 30px 0;
+  }
+  
+  .step-content {
+    padding-bottom: 120px;
+  }
 }
 
 .next-btn, .prev-btn, .restart-btn, .download-btn, .accept-btn, .co-applicant-btn, .upload-btn, .upload-file-btn, .add-bank-btn, .add-loan-btn {
@@ -1068,9 +1097,10 @@ html, body {
   display: flex;
   gap: 20px;
   justify-content: center;
-  margin: 20px 0;
+  margin: 30px 0;
   width: 100%;
   flex-wrap: wrap;
+  padding: 20px 0;
 }
 
 .action-buttons button {
@@ -1080,6 +1110,28 @@ html, body {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  padding: 12px 24px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Laptop and desktop fixes for action buttons */
+@media (min-width: 769px) {
+  .action-buttons {
+    flex-direction: row;
+    gap: 20px;
+    justify-content: center;
+    margin: 40px 0;
+    padding: 20px 0;
+  }
+
+  .action-buttons button {
+    min-width: 220px;
+    padding: 14px 28px;
+    font-size: 15px;
+  }
 }
 
 /* Mobile fixes for action buttons */
@@ -1088,6 +1140,7 @@ html, body {
     flex-direction: column;
     gap: 15px;
     padding: 0 15px;
+    margin: 25px 0;
   }
 
   .action-buttons button {
@@ -1101,7 +1154,14 @@ html, body {
   text-align: center;
   max-width: 600px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 20px 60px 20px;
+  min-height: calc(100vh - 300px);
+}
+
+/* Ensure thank you page is fully scrollable */
+#thank-you {
+  min-height: 100vh;
+  padding-bottom: 100px;
 }
 
 .success-icon {
@@ -1198,11 +1258,106 @@ html, body {
   background-color: #1976D2;
 }
 
-/* Responsive Design */
+/* Laptop and Desktop Responsive Design */
+@media (min-width: 769px) and (max-width: 1366px) {
+  .container {
+    max-width: 1200px;
+    min-height: 100vh;
+    padding: 20px 30px;
+  }
+
+  .button-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+
+  .selection-btn {
+    padding: 15px 20px;
+    font-size: 14px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .upload-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .navigation-buttons {
+    margin-top: 40px;
+    padding: 20px 0;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 30px 0;
+  }
+
+  .action-buttons button {
+    min-width: 180px;
+    padding: 12px 20px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 20px;
+  }
+
+  .form-group.half {
+    flex: 1;
+  }
+
+  .form-group.third {
+    flex: 1;
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1367px) {
+  .container {
+    max-width: 1400px;
+    padding: 30px 40px;
+  }
+
+  .button-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  .upload-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+  }
+}
+
+/* Tablet Responsive Design */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    max-width: 900px;
+    padding: 20px 25px;
+  }
+
+  .button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .upload-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Mobile Responsive Design */
 @media (max-width: 768px) {
   .container {
     padding: 15px;
     margin: 0;
+    min-height: 100vh;
   }
 
   .progress-stepper {
