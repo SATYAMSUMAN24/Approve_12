@@ -1124,6 +1124,8 @@ html, body {
     margin: 20px 0;
     width: 100%;
     box-sizing: border-box;
+    position: relative;
+    z-index: 10;
   }
 
   .action-buttons button {
@@ -1136,6 +1138,7 @@ html, body {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    margin-bottom: 10px !important;
   }
 
   /* Ensure buttons are visible and accessible */
@@ -1148,12 +1151,23 @@ html, body {
     background: linear-gradient(135deg, #FFFFFF, #FFF8F0);
     border-top: 1px solid #FFE5CC;
     margin-top: 30px;
+    z-index: 10;
   }
 
   .navigation-buttons button {
     min-height: 50px;
     font-size: 16px;
     touch-action: manipulation;
+  }
+
+  /* Thank you page specific fixes */
+  .thank-you-content {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .reference-info {
+    margin-bottom: 30px;
   }
 }
 
@@ -1239,6 +1253,11 @@ html, body {
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .accept-btn {
@@ -1257,6 +1276,26 @@ html, body {
 
 .co-applicant-btn:hover {
   background-color: #1976D2;
+}
+
+/* Thank You Page Action Buttons - Always Visible */
+#thank-you .action-buttons {
+  position: sticky;
+  bottom: 20px;
+  background: linear-gradient(135deg, #FFFFFF, #FFF8F0);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.1);
+  border: 1px solid #FFE5CC;
+  margin-top: 30px;
+  z-index: 100;
+}
+
+/* Ensure thank you content doesn't overflow */
+.thank-you-content {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-bottom: 20px;
 }
 
 /* Responsive Design */
