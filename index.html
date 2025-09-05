@@ -143,6 +143,7 @@
 
       <!-- Non-Individual Basic Details Form -->
       <form class="form-container" id="non-individual-basic-form" style="display: none;">
+        <h3>Business/Non-Individual Details</h3>
         <div class="form-group">
           <label for="businessFullName">Full Name</label>
           <input type="text" id="businessFullName" name="businessFullName" required>
@@ -317,14 +318,27 @@
             <input type="number" id="yearsAtResidence" name="yearsAtResidence" min="0" max="50" required>
           </div>
         </div>
+
+        <!-- TJSB Consent Section -->
+        <div class="tjsb-consent-section">
+          <div class="checkbox-group">
+            <input type="checkbox" id="agreeTJSBPersonalConsent" name="agreeTJSBPersonalConsent" required onclick="handleTJSBPersonalConsentClick(event)">
+            <label for="agreeTJSBPersonalConsent">I/We hereby furnish my consent to TJSB bank to share and/or fetch any of my/our information <span class="read-more-link" onclick="showTJSBPersonalConsentModal()">Read More...</span></label>
+          </div>
+        </div>
       </form>
 
       <!-- Non-Individual Personal Details Form -->
       <form class="form-container" id="non-individual-personal-form" style="display: none;">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="companyName">Company Name</label>
-            <input type="text" id="companyName" name="companyName" required>
+        <h3>Company/Business Information</h3>
+        
+        <div class="company-section">
+          <h4>Company Details</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="companyName">Company Name</label>
+              <input type="text" id="companyName" name="companyName" required>
+            </div>
           </div>
         </div>
 
@@ -408,26 +422,30 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>List of Directors/Partners</label>
-            <div class="directors-grid">
-              <div class="directors-header">
-                <div class="directors-column-header">Name</div>
-                <div class="directors-column-header">DIN/LLP No</div>
+        <div class="company-section">
+          <h4>Directors/Partners Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>List of Directors/Partners</label>
+              <div class="directors-grid">
+                <div class="directors-header">
+                  <div class="directors-column-header">👤 Director/Partner Name</div>
+                  <div class="directors-column-header">🆔 DIN/LLP Number</div>
+                </div>
+                <div class="directors-row">
+                  <input type="text" id="directorName1" name="directorName1" placeholder="Enter Director/Partner Name 1*" required>
+                  <input type="text" id="directorDin1" name="directorDin1" placeholder="Enter DIN/LLP Number 1*" required>
+                </div>
+                <div class="directors-row">
+                  <input type="text" id="directorName2" name="directorName2" placeholder="Enter Director/Partner Name 2">
+                  <input type="text" id="directorDin2" name="directorDin2" placeholder="Enter DIN/LLP Number 2">
+                </div>
+                <div class="directors-row">
+                  <input type="text" id="directorName3" name="directorName3" placeholder="Enter Director/Partner Name 3">
+                  <input type="text" id="directorDin3" name="directorDin3" placeholder="Enter DIN/LLP Number 3">
+                </div>
               </div>
-              <div class="directors-row">
-                <input type="text" id="directorName1" name="directorName1" placeholder="Director/Partner Name 1">
-                <input type="text" id="directorDin1" name="directorDin1" placeholder="DIN/LLP Number 1">
-              </div>
-              <div class="directors-row">
-                <input type="text" id="directorName2" name="directorName2" placeholder="Director/Partner Name 2">
-                <input type="text" id="directorDin2" name="directorDin2" placeholder="DIN/LLP Number 2">
-              </div>
-              <div class="directors-row">
-                <input type="text" id="directorName3" name="directorName3" placeholder="Director/Partner Name 3">
-                <input type="text" id="directorDin3" name="directorDin3" placeholder="DIN/LLP Number 3">
-              </div>
+              <small class="helper-text">* At least one director/partner is required</small>
             </div>
           </div>
         </div>
@@ -444,6 +462,14 @@
           <div class="form-group half">
             <label for="cifNumberCompany">CIF Number</label>
             <input type="text" id="cifNumberCompany" name="cifNumberCompany" placeholder="Select existing customer first">
+          </div>
+        </div>
+
+        <!-- TJSB Consent Section for Non-Individual -->
+        <div class="tjsb-consent-section">
+          <div class="checkbox-group">
+            <input type="checkbox" id="agreeTJSBPersonalConsentCompany" name="agreeTJSBPersonalConsentCompany" required onclick="handleTJSBPersonalConsentClick(event)">
+            <label for="agreeTJSBPersonalConsentCompany">I/We hereby furnish my consent to TJSB bank to share and/or fetch any of my/our information <span class="read-more-link" onclick="showTJSBPersonalConsentModal()">Read More...</span></label>
           </div>
         </div>
       </form>
@@ -510,10 +536,15 @@
 
       <!-- Non Individual Employment Type Form -->
       <form class="form-container" id="non-individual-income-form" style="display: none;">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="gstAnnualTurnover">GST Annual Turnover (Last FY)</label>
-            <input type="number" id="gstAnnualTurnover" name="gstAnnualTurnover" step="0.01" required placeholder="Enter annual turnover">
+        <h3>Business Income Details</h3>
+        
+        <div class="company-section">
+          <h4>Annual Turnover & Income</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="gstAnnualTurnover">GST Annual Turnover (Last FY)</label>
+              <input type="number" id="gstAnnualTurnover" name="gstAnnualTurnover" step="0.01" required placeholder="Enter annual turnover in ₹">
+            </div>
           </div>
         </div>
 
@@ -892,7 +923,7 @@
       </div>
     </div>
 
-    <!-- TJSB Consent Modal -->
+    <!-- TJSB Consent Modal (Basic Details) -->
     <div id="tjsbConsentModal" class="consent-modal" style="display: none;">
       <div class="consent-modal-content">
         <div class="consent-header">
@@ -939,6 +970,57 @@
         </div>
         <div class="consent-actions">
           <button class="consent-agree-btn" onclick="agreeTJSBConsent()">I Agree</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TJSB Personal Consent Modal (Personal Details) -->
+    <div id="tjsbPersonalConsentModal" class="consent-modal" style="display: none;">
+      <div class="consent-modal-content">
+        <div class="consent-header">
+          <h3>TJSB Bank Information Consent</h3>
+          <span class="close-consent" onclick="closeTJSBPersonalConsentModal()">&times;</span>
+        </div>
+        <div class="consent-body">
+          <div class="consent-section">
+            <h4>1. Consent for Disclosure of Information</h4>
+            <p>I/We hereby furnish my consent to TJSB SAHAKARI Bank to share and/or fetch any of my/our information (including my/our sensitive personal information, location etc.) or any other device information when TJSB SAHAKARI Bank considers such disclosure/ fetching as necessary, with/ from:</p>
+            <ul>
+              <li>a) Agents of TJSB SAHAKARI Bank in any jurisdiction;</li>
+              <li>b) Auditors, credit rating agencies/credit bureaus, statutory/regulatory authorities, governmental/administrative authorities, Central Know Your Customer (C-KYC) registry or SEBI Know Your Client registration agency, having jurisdiction over TJSB SAHAKARI Bank;</li>
+              <li>c) Service providers, professional advisors, consultants or such person with whom TJSB SAHAKARI Bank contracts or proposes to contract; (Collectively referred to as "Permitted Persons")</li>
+            </ul>
+            <p><strong>For the purpose of:</strong></p>
+            <ul>
+              <li>a) Provision of the facility, completion of on-boarding formalities and servicing; or</li>
+              <li>b) Complying with KYC /customer due diligence requirements, anti-money laundering checks; or</li>
+              <li>c) Compliance with applicable laws or any order (judicial or otherwise), statutory/regulatory/legal requirement, including disclosure to information utilities; or</li>
+              <li>d) Credit review of facilities availed; or</li>
+              <li>e) Authentication or verification; or</li>
+              <li>f) Research or analysis, credit reporting & scoring, risk management, participation in any service-related communication; or</li>
+              <li>g) Electronic clearing network and for use or processing of the said information/data; or</li>
+              <li>h) Disclosing any default in payment; or</li>
+              <li>i) Recovering the credit facilities including all interest and other charges.</li>
+            </ul>
+          </div>
+
+          <div class="consent-section">
+            <h4>2. Consent for Camera/Microphone Access</h4>
+            <p>I/We hereby authorize TJSB SAHAKARI Bank to get a one-time access to my/our device's camera and microphone for the purposes of on-boarding and KYC verification which is required to be conducted to enable TJSB SAHAKARI Bank to provide the credit facilities sought by me/us.</p>
+          </div>
+
+          <div class="consent-section">
+            <h4>3. Consent to TJSB SAHAKARI Bank's Privacy Commitment</h4>
+            <p>I/We confirm having read and understood TJSB SAHAKARI Bank's 'Privacy Commitment' available at <a href="https://www.tjsb.bank.in/Privacy" target="_blank">https://www.tjsb.bank.in/Privacy</a>. I/We acknowledge that the same shall be subject to changes by TJSB SAHAKARI Bank from time to time at its sole discretion and I/we agree to keep myself/ourselves updated with the same.</p>
+          </div>
+
+          <div class="consent-section">
+            <h4>4. Service Provider Authorization</h4>
+            <p>I authorise TJSB SAHAKARI Bank to disclose such information provided by me to its service providers to enable them to contact me for rendering assistance that may be required to submit application to TJSB SAHAKARI Bank and complete on-boarding formalities.</p>
+          </div>
+        </div>
+        <div class="consent-actions">
+          <button class="consent-agree-btn" onclick="agreeTJSBPersonalConsent()">I Agree</button>
         </div>
       </div>
     </div>
