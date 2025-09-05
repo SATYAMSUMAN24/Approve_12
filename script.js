@@ -28,7 +28,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize document visibility after a brief delay to ensure DOM is ready
     setTimeout(() => {
+        console.log('Initializing document visibility...');
         updateDocumentVisibility();
+        
+        // Force show income proof for individual users if hidden
+        const employmentType = formData.employmentType || 'individual';
+        if (employmentType === 'individual') {
+            const incomeProofDoc = document.getElementById('incomeProofDoc');
+            if (incomeProofDoc) {
+                const parentItem = incomeProofDoc.closest('.upload-item');
+                if (parentItem && parentItem.style.display === 'none') {
+                    parentItem.style.display = 'block';
+                    console.log('Force showed income proof document for individual user');
+                }
+            }
+        }
     }, 100);
 });
 
@@ -314,9 +328,13 @@ function validateDocumentUpload() {
     const employmentType = formData.employmentType || 'individual';
     let requiredDocs = ['bankStatement', 'dealerInvoice'];
 
-    // Income proof is only required for individual customers
+    console.log('Validating documents for employment type:', employmentType);
+    console.log('Selected employment sub type:', selectedEmploymentSubType);
+
+    // Income proof is ALWAYS required for individual customers
     if (employmentType === 'individual') {
         requiredDocs.push('incomeProofDoc');
+        console.log('Added incomeProofDoc to required documents for individual');
     }
 
     // GST is required for business-related employment sub-types
@@ -324,7 +342,22 @@ function validateDocumentUpload() {
         selectedEmploymentSubType === 'llp-partnership' ||
         selectedEmploymentSubType === 'private-limited') {
         requiredDocs.push('gstDoc');
+        console.log('Added gstDoc to required documents for business employment type');
     }
+
+    console.log('Required documents:', requiredDocs);
+
+    // Check each required document
+    const documentStatus = {};
+    requiredDocs.forEach(docId => {
+        const doc = uploadedDocuments[docId];
+        documentStatus[docId] = {
+            exists: !!doc,
+            verified: doc && doc.verified
+        };
+    });
+
+    console.log('Document status:', documentStatus);
 
     const allUploaded = requiredDocs.every(docId => {
         const doc = uploadedDocuments[docId];
@@ -336,9 +369,13 @@ function validateDocumentUpload() {
             const doc = uploadedDocuments[docId];
             return !doc || !doc.verified;
         });
+        
+        console.log('Missing documents:', missingDocs);
         showError(`Please verify all required documents. Missing: ${missingDocs.map(id => getDocumentDisplayName(id)).join(', ')}`);
         return false;
     }
+    
+    console.log('All required documents verified successfully');
     return true;
 }
 
@@ -1935,9 +1972,12 @@ function checkAllDocumentsUploaded() {
     const employmentType = formData.employmentType || 'individual';
     let requiredDocs = ['bankStatement', 'dealerInvoice'];
 
-    // Income proof is only required for individual customers
+    console.log('Checking documents for employment type:', employmentType);
+
+    // Income proof is ALWAYS required for individual customers
     if (employmentType === 'individual') {
         requiredDocs.push('incomeProofDoc');
+        console.log('Income proof document required for individual');
     }
 
     // GST is required for business-related employment sub-types
@@ -1945,27 +1985,38 @@ function checkAllDocumentsUploaded() {
         selectedEmploymentSubType === 'llp-partnership' ||
         selectedEmploymentSubType === 'private-limited') {
         requiredDocs.push('gstDoc');
+        console.log('GST document required for business employment type');
     }
 
-    const allVerified = requiredDocs.every(docId => {
+    console.log('Required documents list:', requiredDocs);
+
+    // Check verification status for each required document
+    const verificationStatus = requiredDocs.map(docId => {
         const doc = uploadedDocuments[docId];
-        return doc && doc.verified;
+        const verified = doc && doc.verified;
+        console.log(`Document ${docId}: ${verified ? 'VERIFIED' : 'NOT VERIFIED'}`);
+        return verified;
     });
+
+    const allVerified = verificationStatus.every(status => status);
+    const verifiedCount = verificationStatus.filter(status => status).length;
+    const totalRequired = requiredDocs.length;
+
+    console.log(`Documents verified: ${verifiedCount}/${totalRequired}`);
 
     const proceedButton = document.getElementById('proceedToApproval');
     if (proceedButton) {
         if (allVerified) {
             proceedButton.style.backgroundColor = '#28a745';
-            proceedButton.textContent = 'All Documents Uploaded - Proceed';
+            proceedButton.textContent = 'All Documents Verified - Proceed';
             proceedButton.disabled = false;
+            console.log('All documents verified - proceed button enabled');
         } else {
-            const missingCount = requiredDocs.filter(docId => {
-                const doc = uploadedDocuments[docId];
-                return !doc || !doc.verified;
-            }).length;
+            const missingCount = totalRequired - verifiedCount;
             proceedButton.style.backgroundColor = '#f44336';
-            proceedButton.textContent = `Verify ${missingCount} more documents`;
+            proceedButton.textContent = `Verify ${missingCount} more document${missingCount > 1 ? 's' : ''}`;
             proceedButton.disabled = true;
+            console.log(`${missingCount} documents still need verification`);
         }
     }
 }
@@ -2179,34 +2230,52 @@ function updateEmploymentSubTypeVisibility() {
 function updateDocumentVisibility() {
     const employmentType = formData.employmentType || 'individual';
     const gstDocument = document.getElementById('gstDocument');
-    const incomeProofDocument = document.querySelector('.upload-item:has(#incomeProofDoc)') || 
-                                document.getElementById('incomeProofDoc')?.closest('.upload-item');
+    
+    // Find income proof document more reliably
+    let incomeProofDocument = document.getElementById('incomeProofDoc')?.closest('.upload-item');
+    if (!incomeProofDocument) {
+        // Alternative search method
+        const uploadItems = document.querySelectorAll('.upload-item');
+        uploadItems.forEach(item => {
+            const uploadBox = item.querySelector('#incomeProofDoc');
+            if (uploadBox) {
+                incomeProofDocument = item;
+            }
+        });
+    }
+
+    console.log('Employment Type:', employmentType);
+    console.log('Selected Employment Sub Type:', selectedEmploymentSubType);
+    console.log('Income Proof Document Found:', !!incomeProofDocument);
 
     // Show GST document for business-related employment sub-types
     if (selectedEmploymentSubType === 'self-business' ||
         selectedEmploymentSubType === 'llp-partnership' ||
         selectedEmploymentSubType === 'private-limited') {
-        if (gstDocument) gstDocument.style.display = 'block';
+        if (gstDocument) {
+            gstDocument.style.display = 'block';
+            console.log('GST Document: SHOWN (business employment type)');
+        }
     } else {
-        if (gstDocument) gstDocument.style.display = 'none';
+        if (gstDocument) {
+            gstDocument.style.display = 'none';
+            console.log('GST Document: HIDDEN (non-business employment type)');
+        }
     }
 
     // Show/hide income proof document based on employment type
     if (employmentType === 'non-individual') {
-        if (incomeProofDocument) incomeProofDocument.style.display = 'none';
+        if (incomeProofDocument) {
+            incomeProofDocument.style.display = 'none';
+            console.log('Income Proof Document: HIDDEN (non-individual)');
+        }
     } else {
-        // For individual users, always show income proof document
+        // For individual users, ALWAYS show income proof document
         if (incomeProofDocument) {
             incomeProofDocument.style.display = 'block';
+            console.log('Income Proof Document: SHOWN (individual user)');
         } else {
-            // Fallback: find by traversing DOM if querySelector doesn't work
-            const incomeProofBox = document.getElementById('incomeProofDoc');
-            if (incomeProofBox) {
-                const parentItem = incomeProofBox.closest('.upload-item');
-                if (parentItem) {
-                    parentItem.style.display = 'block';
-                }
-            }
+            console.error('Income Proof Document not found for individual user!');
         }
     }
 
